@@ -1,0 +1,2 @@
+# Preserve the supplied brand guide as a binary asset.
+*.pdf binary

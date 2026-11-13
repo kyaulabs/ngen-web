@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="NGEN — a C++20 game engine for space simulators, with a focus on space MMOs. Explore the engine and its live repository telemetry." />
+  <meta name="theme-color" content="#0E222C" />
+  <meta property="og:title" content="NGEN // Space Simulation Engine" />
+  <meta property="og:description" content="A C++20 game engine for space simulation by KYAU Labs." />
+  <meta property="og:type" content="website" />
+  <title>NGEN // Space Simulation Engine</title>
+  <script src="theme.min.js"></script>
+  <link rel="icon" type="image/svg+xml" href="brand/icons/favicon/favicon.svg" />
+  <link rel="stylesheet" href="brand/web/ngen-theme.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="vendor/d3.min.js" defer></script>
+  <script src="space.min.js" defer></script>
+  <script src="app.min.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="scanlines" aria-hidden="true"></div>
+  <div class="space-background" aria-hidden="true"></div>
+  <header class="nav" id="top">
+    <a class="nav-brand" href="#top" aria-label="NGEN home">
+      <img class="brand-mark brand-mark-dark" src="brand/logos/svg/ngen-wordmark-dark.svg" alt="" />
+      <img class="brand-mark brand-mark-light" src="brand/logos/svg/ngen-wordmark-light.svg" alt="" />
+      <span class="brand-sub">// kyaulabs</span>
+    </a>
+    <nav class="nav-links" aria-label="Sections">
+      <a href="#vitals">Vitals</a><a href="#games">Games</a><a href="#activity">Activity</a><a href="#matrix">Matrix</a><a href="#branches">Branches</a><a href="#releases">Releases</a><a href="#tracker">Tracker</a><a href="#contributors">Contributors</a>
+    </nav>
+    <div class="nav-actions">
+      <span id="feed-badge" class="badge badge-live" title="Data feed status"><span class="badge-dot" aria-hidden="true"></span><span id="feed-badge-text">SYNC</span></span>
+      <button id="motion-toggle" class="icon-btn" type="button" aria-label="Pause background animation" aria-pressed="false"><span aria-hidden="true">Ⅱ</span></button>
+      <button id="theme-toggle" class="icon-btn" type="button" aria-label="Toggle color theme" aria-pressed="false">
+        <svg class="ico-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 2.5v2.6M12 18.9v2.6M2.5 12h2.6M18.9 12h2.6M5 5l1.8 1.8M17.2 17.2 19 19M19 5l-1.8 1.8M6.8 17.2 5 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <svg class="ico-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+      </button>
+      <a class="btn btn-ghost nav-gh" href="https://github.com/kyaulabs/ngen" target="_blank" rel="noopener">GitHub ↗</a>
+    </div>
+  </header>
+  <main id="main">
+    <section class="hero" id="hero">
+      <div class="hud hud-tl" aria-hidden="true">KYAU LABS // R&amp;D DIVISION</div>
+      <div class="hud hud-tr" aria-hidden="true">NODE: github.com/kyaulabs/ngen</div>
+      <div class="hud hud-bl" aria-hidden="true">PROTO: HTTPS / REST / JSON</div>
+      <div class="hud hud-br" aria-hidden="true">SESSION: <span id="hud-session">--------</span></div>
+      <div class="hero-inner">
+        <p class="hero-kicker reveal">[ C++20 // SPACE SIMULATION // GIT TELEMETRY ]</p>
+        <h1 class="hero-title reveal" aria-label="NGEN"><span class="orbital-system" aria-hidden="true">
+          <img class="orbital-art orbital-art-dark" src="brand/graphics/ngen-orbital-schematic-dark.svg" alt="" />
+          <img class="orbital-art orbital-art-light" src="brand/graphics/ngen-orbital-schematic-light.svg" alt="" />
+        </span></h1>
+        <div class="hero-sub">
+          <p class="hero-tag reveal">A C++20 game engine for space simulators, with a focus on space MMOs. Engineered by KYAU Labs. <em>Observed here, live, as pure telemetry.</em></p>
+          <div class="hero-chips reveal" id="hero-chips" aria-label="Repository counters"><span class="chip skeleton-chip">— syncing —</span></div>
+          <div class="hero-cta reveal">
+            <a class="btn btn-primary" href="https://github.com/kyaulabs/ngen" target="_blank" rel="noopener">View Repository ↗</a>
+            <a class="btn btn-ghost" href="#install">Get the Source ↓</a>
+          </div>
+        </div>
+      </div>
+      <a class="hero-scroll" href="#vitals" aria-label="Scroll to dashboard"><span class="hero-scroll-arrow" aria-hidden="true">▼</span><span class="hero-scroll-text">SCROLL</span></a>
+    </section>
+    <div class="ticker" aria-label="Latest commits"><div class="ticker-label">FEED</div><div class="ticker-viewport"><div class="ticker-track" id="ticker-track"><span class="ticker-item">— awaiting commit feed —</span></div></div></div>
+    <section class="section" id="vitals">
+      <header class="sec-head reveal"><span class="kicker">[ 01 // VITALS ]</span><h2>Repository Vitals</h2><p class="sec-sub">Public repository counters from the GitHub REST API. The feed badge distinguishes live metadata from the dated snapshot.</p></header>
+      <p class="empty-note" id="data-note" role="status"></p>
+      <div class="grid-kpi" id="kpi-grid"><article class="panel kpi skeleton-panel"></article></div>
+    </section>
+    <section class="section" id="games">
+      <header class="sec-head reveal"><span class="kicker">[ 02 // ENGINE ECOSYSTEM ]</span><h2>Games <span class="h2-sub">— powered by NGEN</span></h2><p class="sec-sub">Projects using the engine, alongside the source to get started.</p></header>
+      <div class="panel core-install reveal" id="install">
+        <div class="term-bar"><span class="term-dot"></span><span class="term-dot"></span><span class="term-dot"></span><span class="term-title">ngen — source checkout</span><span class="term-count">C++20</span></div>
+        <div class="core-install-body">
+          <div class="pkg-head"><div><h3 class="pkg-name">Get the engine</h3><div class="pkg-role">source installation</div></div><span class="tag">AGPL-3.0</span></div>
+          <p class="core-install-note">Clone NGEN with its submodules. This downloads the source; platform prerequisites and build instructions belong to the engine repository.</p>
+          <div class="pkg-installs"><div class="clone-line clone-block"><div class="clone-block-cmds"><span class="clone-row"><span class="clone-prompt" aria-hidden="true">$</span><code class="clone-cmd">git clone --recurse-submodules https://github.com/kyaulabs/ngen.git</code></span></div><button class="clone-copy icon-btn" type="button" aria-label="Copy source clone command"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5 15V6a2 2 0 0 1 2-2h9" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button></div></div>
+          <a class="pkg-cta" href="https://github.com/kyaulabs/ngen" target="_blank" rel="noopener">repository + build documentation ↗</a>
+          <p class="empty-note" id="copy-status" role="status"></p>
+        </div>
+      </div>
+      <article class="panel game-empty reveal"><span class="kicker">// GAME DIRECTORY</span><h3>No games announced yet</h3><p>Game projects will appear here when announced.</p></article>
+    </section>
+    <section class="section" id="activity">
+      <header class="sec-head reveal"><span class="kicker">[ 03 // TELEMETRY ]</span><h2>Commit Activity <span class="h2-sub">— 52 week waveform</span></h2><p class="sec-sub">Weekly commit volume on the default branch. Hover the waveform to sample any week. Pending statistics are marked unavailable.</p></header>
+      <div class="panel panel-chart reveal"><div class="chart-meta"><div><span class="meta-label">TOTAL / 52W</span><span class="meta-value" id="activity-total">—</span></div><div><span class="meta-label">AVG / WEEK</span><span class="meta-value" id="activity-avg">—</span></div><div><span class="meta-label">PEAK</span><span class="meta-value" id="activity-peak">—</span></div></div><div class="chart-mount chart-mount-lg" id="chart-activity" role="img" aria-label="Area chart of weekly commit volume over the last 52 weeks"></div></div>
+    </section>
+    <section class="section" id="pulse">
+      <header class="sec-head reveal"><span class="kicker">[ 04 // COMPOSITION ]</span><h2>System Pulse</h2><p class="sec-sub">Source language composition and resolution gauges for the issue and pull-request pipelines.</p></header>
+      <div class="grid-pulse">
+        <div class="panel panel-chart reveal"><h3 class="panel-title">Language Composition <span class="panel-title-sub">// bytes</span></h3><div class="chart-mount chart-mount-md" id="chart-langs" role="img" aria-label="Donut chart of language composition"></div><ul class="legend" id="langs-legend"></ul></div>
+        <div class="panel panel-chart reveal"><h3 class="panel-title">Issue Resolution <span class="panel-title-sub">// closed : total</span></h3><div class="chart-mount chart-mount-md" id="gauge-issues" role="img" aria-label="Gauge showing issue resolution rate"></div><p class="gauge-cap" id="gauge-issues-cap">—</p></div>
+        <div class="panel panel-chart reveal"><h3 class="panel-title">PR Throughput <span class="panel-title-sub">// closed : total</span></h3><div class="chart-mount chart-mount-md" id="gauge-prs" role="img" aria-label="Gauge showing pull request throughput"></div><p class="gauge-cap" id="gauge-prs-cap">—</p></div>
+      </div>
+    </section>
+    <section class="section" id="matrix"><header class="sec-head reveal"><span class="kicker">[ 05 // MATRIX ]</span><h2>Commit Matrix <span class="h2-sub">— 52 week lattice</span></h2><p class="sec-sub">Estimated daily distribution derived from weekly totals, not exact daily commit counts. Each cell represents one day.</p></header><div class="panel panel-chart reveal"><div class="chart-mount chart-mount-heat" id="chart-heatmap" role="img" aria-label="Estimated daily commit distribution derived from weekly totals"></div></div></section>
+    <section class="section" id="branches"><header class="sec-head reveal"><span class="kicker">[ 06 // TOPOLOGY ]</span><h2>Branches</h2><p class="sec-sub">Repository topology — HEAD pointers and protection status.</p></header><div class="branch-list" id="branches-list"><article class="panel skeleton-panel branch-card"></article></div></section>
+    <section class="section" id="releases"><header class="sec-head reveal"><span class="kicker">[ 07 // DEPLOY LOG ]</span><h2>Release Timeline</h2><p class="sec-sub">Versioned releases in chronological order. Expand a release to read its full notes. <span id="releases-note"></span></p></header><div class="timeline" id="releases-list"><article class="panel skeleton-panel release-card"></article></div></section>
+    <section class="section" id="tracker">
+      <header class="sec-head reveal"><span class="kicker">[ 08 // TRACKER ]</span><h2>Issues &amp; Pull Requests</h2><p class="sec-sub">Open and recently closed work items. Activate any row for the full record.</p></header>
+      <div class="grid-tracker">
+        <div class="panel term reveal"><div class="term-bar"><span class="term-dot"></span><span class="term-dot"></span><span class="term-dot"></span><span class="term-title">ngen — issues</span><span class="term-count" id="issues-count-badge">—</span></div><div class="pkg-tabs tracker-tabs" id="issues-tabs" role="tablist" aria-label="Filter issues by state"><button class="pkg-tab tracker-tab active" type="button" role="tab" aria-selected="true" data-state="open">Open<span class="tracker-tab-n">—</span></button><button class="pkg-tab tracker-tab" type="button" role="tab" aria-selected="false" data-state="closed">Closed<span class="tracker-tab-n">—</span></button></div><ul class="term-list" id="issues-list"></ul></div>
+        <div class="panel term reveal"><div class="term-bar"><span class="term-dot"></span><span class="term-dot"></span><span class="term-dot"></span><span class="term-title">ngen — pull requests</span><span class="term-count" id="prs-count-badge">—</span></div><div class="pkg-tabs tracker-tabs" id="prs-tabs" role="tablist" aria-label="Filter pull requests by state"><button class="pkg-tab tracker-tab active" type="button" role="tab" aria-selected="true" data-state="open">Open<span class="tracker-tab-n">—</span></button><button class="pkg-tab tracker-tab" type="button" role="tab" aria-selected="false" data-state="closed">Closed<span class="tracker-tab-n">—</span></button></div><ul class="term-list" id="prs-list"></ul></div>
+      </div>
+    </section>
+    <section class="section" id="contributors"><header class="sec-head reveal"><span class="kicker">[ 09 // OPERATORS ]</span><h2>Contributors</h2><p class="sec-sub">Repository contributors ranked by commits on the default branch.</p></header><div class="grid-contrib" id="contributors-list"><article class="panel skeleton-panel contrib-card"></article></div></section>
+  </main>
+  <footer class="footer"><div class="footer-grid"><div><img class="brand-mark brand-mark-dark footer-mark" src="brand/logos/svg/ngen-wordmark-dark.svg" alt="NGEN logo" /><img class="brand-mark brand-mark-light footer-mark" src="brand/logos/svg/ngen-wordmark-light.svg" alt="NGEN logo" /><p class="footer-line">NGEN — a C++20 game engine for space simulation.<br />Engineered by <a href="https://kyaulabs.com" target="_blank" rel="noopener">KYAU Labs</a>. Licensed AGPL-3.0.</p></div><div class="footer-meta"><p>TELEMETRY SOURCE: <a href="https://github.com/kyaulabs/ngen" target="_blank" rel="noopener">api.github.com/repos/kyaulabs/ngen</a></p><p>LAST SYNC: <span id="footer-sync">—</span></p><p>DATA VISUALIZATION: <a href="https://d3js.org" target="_blank" rel="noopener">D3.js v7</a></p><p>BACKGROUND: NGEN orbital schematic</p></div></div><p class="footer-legal">Adapted from the <a href="https://github.com/kyaulabs/prism-web">Prism dashboard</a>. No cookies or tracking. GitHub supplies public repository metadata; your browser stores theme preferences and a short-lived data cache.</p></footer>
+  <div class="pkg-modal-overlay" id="item-modal" hidden><div class="pkg-modal item-modal panel" role="dialog" aria-modal="true" aria-labelledby="item-modal-title" tabindex="-1"></div></div>
+  <div class="pkg-modal-overlay" id="contrib-modal" hidden><div class="pkg-modal contrib-modal panel" role="dialog" aria-modal="true" aria-labelledby="contrib-modal-title" tabindex="-1"></div></div>
+  <div id="chart-tip" class="chart-tip" role="status" aria-live="polite"></div>
+  <noscript><div class="noscript-warn">NGEN telemetry requires JavaScript. The engine source and Games directory remain available above.</div></noscript>
+</body>
+</html>
