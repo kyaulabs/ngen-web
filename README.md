@@ -29,17 +29,14 @@ GitHub’s unauthenticated API can be unavailable or rate-limited. Counters then
 
 ## Local development
 
-Requirements: Node.js 24+ and npm.
+Requirements on the build/test machine: Node.js 24+ and npm.
 
 ```sh
 npm ci
 npm run build
-node tests/server.mjs
 ```
 
-Open `http://127.0.0.1:4173`. Rebuild after changing JavaScript: the page loads generated `theme.min.js`, `space.min.js`, and `app.min.js`.
-
-The loopback server is for local previews, not production hosting.
+Serve the built files with nginx using [NGINX.md](NGINX.md). Rebuild after changing JavaScript: the page loads generated `theme.min.js`, `space.min.js`, and `app.min.js`. Node.js is build/test tooling, not the website’s runtime.
 
 ## Verification
 
@@ -58,7 +55,7 @@ The viewport matrix covers 390×844 mobile, 320px reflow, 1920×1080, 3840×2160
 
 Build from source with `npm ci && npm run build`, or use the static-site archive attached to a [website release](https://github.com/kyaulabs/ngen-web/releases). Release archives include SHA-256 checksums.
 
-Serve these files and directories from a static web server:
+Follow [NGINX.md](NGINX.md) for static-file deployment, HTTPS, configuration validation, and reload instructions. nginx serves these files directly; it must not proxy to a Node.js application:
 
 ```text
 index.html
@@ -75,6 +72,7 @@ No Node.js runtime, PHP application, or database is required on the production s
 
 ## Documentation
 
+- [nginx deployment](NGINX.md): production file layout, server configuration, and HTTPS.
 - [Development notes](DEVELOPMENT.md): data behavior, build output, preview tooling, and known verification limits.
 - [Visual brief](DESIGN.md): approved branding, motion, and viewport requirements.
 - [Brand guide](brand/guide/ngen-brand-guide.pdf) and [asset index](brand/README.txt).
