@@ -1,3 +1,13 @@
 # Visual Studio cache directory
 */.vs/
 .vs/
+
+# Local tools and generated output
+.pi/
+node_modules/
+coverage/
+playwright-report/
+test-results/
+tests/Browser/Screenshots/
+*.min.js
+!vendor/d3.min.js
