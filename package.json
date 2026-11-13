@@ -1,0 +1,26 @@
+{
+  "name": "@kyaulabs/ngen-web",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "uglifyjs theme.js --compress --mangle --output theme.min.js && uglifyjs space.js --compress --mangle --output space.min.js && uglifyjs app.js --compress --mangle --output app.min.js && node --check theme.min.js && node --check space.min.js && node --check app.min.js",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "npm run build && playwright test",
+    "check": "npm run lint && npm run test:coverage && npm run test:e2e"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.63.0",
+    "@vitest/coverage-v8": "^5.1.0",
+    "eslint": "^10.10.0",
+    "globals": "^17.12.0",
+    "jsdom": "^30.0.1",
+    "uglify-js": "^3.19.3",
+    "vitest": "^5.1.0"
+  }
+}

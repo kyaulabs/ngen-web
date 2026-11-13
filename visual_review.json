@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "baseUrl": "http://127.0.0.1:4173",
+  "viewports": {
+    "mobile": { "width": 390, "height": 844 },
+    "desktop": { "width": 1920, "height": 1080 }
+  },
+  "cases": [
+    {
+      "id": "dashboard",
+      "path": "/",
+      "readySelector": "body.loaded",
+      "states": [
+        { "id": "dark", "colorScheme": "dark", "actions": [] },
+        { "id": "light", "colorScheme": "light", "actions": [] },
+        { "id": "offline-dark", "colorScheme": "dark", "actions": [] },
+        { "id": "tracker-dark", "colorScheme": "dark", "actions": [{ "type": "click", "selector": "#issues-list .term-open" }] },
+        { "id": "contributor-light", "colorScheme": "light", "actions": [{ "type": "click", "selector": ".contrib-card" }] }
+      ]
+    }
+  ]
+}
