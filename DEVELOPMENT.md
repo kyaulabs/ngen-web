@@ -1,20 +1,21 @@
 # Development
 
-This is a static site adapted from `kyaulabs/prism-web` under AGPL-3.0. It uses vanilla JavaScript, CSS, and the reference site’s vendored D3 v7. There is no runtime package installation or server framework. The complete NGEN brand pack is retained in `brand/`.
+This is a static site adapted from `kyaulabs/prism-web` under AGPL-3.0. It uses vanilla JavaScript, CSS, and the reference site’s vendored D3 v7. nginx serves the built files directly; Node.js/npm are build/test tooling only, not the website’s runtime. There is no upstream application server. The complete NGEN brand pack is retained in `brand/`.
 
 ```sh
 npm ci
-npx playwright install chromium
 npm run build
-node tests/server.mjs
 ```
 
-Open `http://127.0.0.1:4173`. Build before serving: `index.html` loads generated `theme.min.js`, `space.min.js`, and `app.min.js`. Deploy those files with `index.html`, `styles.css`, `vendor/d3.min.js`, `assets/`, and `brand/`. Generated application scripts are ignored by Git.
+Use [NGINX.md](NGINX.md) for interactive previews and production hosting. Build before serving: `index.html` loads generated `theme.min.js`, `space.min.js`, and `app.min.js`. Deploy those files with `index.html`, `styles.css`, `vendor/d3.min.js`, `assets/`, and `brand/`. Generated application scripts are ignored by Git.
 
 ```sh
+npx playwright install chromium
 npm run check
 node_modules/.bin/playwright test visual_review.spec.mjs --workers=1 --output tests/Browser/Screenshots/.playwright --reporter=line
 ```
+
+Playwright automatically starts the loopback-only `tests/server.mjs` helper for browser verification. That Node.js process is test infrastructure, not an application server or deployment target.
 
 The check runs ESLint, Vitest with 95% aggregate coverage thresholds, the production build, and Chromium browser tests. Browser tests intercept all external traffic with controlled fixtures. Screenshots under `tests/Browser/Screenshots/` are ignored working evidence. See `DESIGN.md` for the user-approved reference and viewport matrix.
 
