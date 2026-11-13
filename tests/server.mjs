@@ -10,7 +10,7 @@ createServer(async (request, response) => {
   try {
     const pathname = decodeURIComponent(new URL(request.url, 'http://127.0.0.1').pathname);
     const path = pathname === '/' ? '/index.html' : pathname;
-    if (request.method !== 'GET' || path.includes('..') || path.includes('\\') || (!publicFiles.has(path) && !/^\/(?:vendor|brand)\/[\w./-]+$/.test(path)) || !types[extname(path)]) {
+    if (request.method !== 'GET' || path.includes('..') || path.includes('\\') || (!publicFiles.has(path) && !/^\/(?:vendor|brand|assets)\/[\w./-]+$/.test(path)) || !types[extname(path)]) {
       response.writeHead(404).end();
       return;
     }

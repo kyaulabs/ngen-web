@@ -13,22 +13,34 @@ afterEach(() => Space.destroy());
 
 it('generates the stellar field and three orbital tracks with a globe on every track', () => {
   Space.init();
-  expect(document.querySelectorAll('.space-background svg')).toHaveLength(1);
+  expect(document.querySelectorAll('.space-background .space-field')).toHaveLength(1);
   expect(document.querySelectorAll('.space-star').length).toBeGreaterThan(80);
   expect(document.querySelectorAll('.orbit-track')).toHaveLength(3);
   expect(document.querySelectorAll('.orbit-track .orbital-globe')).toHaveLength(3);
   expect(document.querySelector('.orbital-system').classList.contains('space-ready')).toBe(true);
 });
+it('generates a dense star field and textured nebula clouds behind the hero', () => {
+  Space.init();
+  expect(document.querySelectorAll('.space-star').length).toBeGreaterThan(500);
+  expect(document.querySelectorAll('.space-nebula path').length).toBeGreaterThan(5);
+  expect(document.querySelectorAll('.space-nebula ellipse')).toHaveLength(0);
+  expect(document.querySelector('.space-field defs feDisplacementMap')).not.toBeNull();
+  expect(document.querySelector('.space-star').closest('svg')).not.toBe(document.querySelector('.space-nebula').closest('svg'));
+  expect(document.querySelector('.space-nebula feTurbulence, .space-field defs feTurbulence')).not.toBeNull();
+});
+
 it('animates tracks, globes and stars, and freezes their positions when paused', async () => {
   window.matchMedia.mockReturnValue({ matches: false, addEventListener() {}, removeEventListener() {} });
   Space.init();
   const track = document.querySelector('.orbit-track');
   const globe = document.querySelector('.orbital-globe');
-  const field = document.querySelector('.space-field g');
-  const before = [track.getAttribute('transform'), globe.getAttribute('cx'), field.getAttribute('transform')];
+  const field = document.querySelector('.star-layer');
+  const fieldTransform = () => field.style.transform || field.getAttribute('transform');
+  const before = [track.getAttribute('transform'), globe.getAttribute('cx'), fieldTransform()];
   await vi.waitFor(() => expect(track.getAttribute('transform')).not.toBe(before[0]));
   expect(globe.getAttribute('cx')).not.toBe(before[1]);
-  expect(field.getAttribute('transform')).not.toBe(before[2]);
+  expect(fieldTransform()).toBe(before[2]); // distant stars need no per-frame repaint
+  await vi.waitFor(() => expect(fieldTransform()).not.toBe(before[2]), { timeout: 1600 });
   document.body.classList.add('motion-paused');
   document.dispatchEvent(new Event('ngen:motionchange'));
   const paused = track.getAttribute('transform');
@@ -57,7 +69,7 @@ it('responds to reduced-motion changes and tab visibility without losing the sce
   await new Promise((resolve) => setTimeout(resolve, 90));
   expect(track.getAttribute('transform')).toBe(hidden);
   Space.destroy();
-  expect(document.querySelectorAll('.space-field, .orbit-scene')).toHaveLength(0);
+  expect(document.querySelectorAll('.space-field, .space-star-field, .orbit-scene')).toHaveLength(0);
   expect(document.querySelector('.orbital-system').classList.contains('space-ready')).toBe(false);
   expect(media.removeEventListener).toHaveBeenCalled();
 });

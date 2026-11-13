@@ -2441,6 +2441,8 @@ async function boot() {
   const nav = Utils.$('.nav');
   const syncScrollChrome = () => {
     nav?.classList.toggle('scrolled', window.scrollY > 12);
+    const hero = Utils.$('#hero');
+    nav?.classList.toggle('over-hero', Boolean(hero && hero.getBoundingClientRect().bottom > nav.offsetHeight));
     dockTicker(window.scrollY > 0);
   };
   window.addEventListener('scroll', syncScrollChrome, { passive: true });
@@ -2452,6 +2454,7 @@ async function boot() {
 
   /* Debounced rebuild keeps chart geometry honest across resizes. */
   window.addEventListener('resize', Utils.debounce(() => {
+    syncScrollChrome();
     if (STATE.data) Charts.buildAll(STATE.data);
   }, 220));
 
@@ -2482,6 +2485,7 @@ async function boot() {
   UI.renderAll(STATE.data);
   Charts.buildAll(STATE.data);
   Reveal.watchCounters();
+  syncScrollChrome();
   document.body.classList.add('loaded');
 }
 

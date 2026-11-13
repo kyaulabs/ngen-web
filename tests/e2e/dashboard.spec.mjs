@@ -15,7 +15,7 @@ test('preserves the dashboard with NGEN identity, live charts and an honest game
   await load(page);
   await expect(page).toHaveTitle('NGEN // Space Simulation Engine');
   await expect(page.locator('#hero img[src*="wordmark"]')).toHaveCount(0);
-  await expect(page.locator('#hero .orbital-art:visible')).toHaveCount(1);
+  await expect(page.locator('#hero .orbital-core:visible')).toHaveCount(1);
   await expect(page.locator('#feed-badge-text')).toHaveText('LIVE');
   await expect(page.locator('#hero-chips a')).toHaveCount(6);
   await expect(page.locator('.kpi-value')).toHaveCount(6);
@@ -39,7 +39,21 @@ test('copies the source command and persists theme selection', async ({ page, co
   const next = await page.locator('html').getAttribute('data-theme');
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-theme', next);
-  await expect(page.locator('#hero .orbital-art:visible')).toHaveAttribute('src', `brand/graphics/ngen-orbital-schematic-${next}.svg`);
+  await expect(page.locator('#hero .orbital-core:visible')).toHaveAttribute('src', 'assets/ngen-orbital-core.svg');
+});
+
+test('keeps space and dark branding inside the hero while light navigation returns below it', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'light' });
+  await load(page);
+  await expect(page.locator('#hero .space-background')).toHaveCount(1);
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await expect(page.locator('#hero .orbital-core:visible')).toHaveAttribute('src', 'assets/ngen-orbital-core.svg');
+  await expect(page.locator('.nav .brand-mark-dark')).toBeVisible();
+  await page.locator('#activity').scrollIntoViewIfNeeded();
+  await expect(page.locator('.nav')).not.toHaveClass(/over-hero/);
+  await expect(page.locator('.nav .brand-mark-light')).toBeVisible();
+  const remainsInHero = await page.locator('.space-background').evaluate((el) => getComputedStyle(el).position === 'absolute' && el.closest('#hero') !== null);
+  expect(remainsInHero).toBe(true);
 });
 
 test('supports tracker tabs, safe markdown, modal focus containment and focus restoration', async ({ page }) => {
@@ -92,7 +106,8 @@ test('shows unavailable statistics and snapshot provenance when offline', async 
 
 test('simulates stars and circling globes with D3, honoring reduced motion and pause', async ({ page }) => {
   await load(page);
-  await expect(page.locator('.space-star')).toHaveCount(162);
+  expect(await page.locator('.space-star').count()).toBeGreaterThan(500);
+  await expect(page.locator('.space-nebula')).toHaveCount(1);
   await expect(page.locator('.orbit-track')).toHaveCount(3);
   await expect(page.locator('.orbital-globe')).toHaveCount(3);
   const track = page.locator('.orbit-track').first();
