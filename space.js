@@ -1,10 +1,10 @@
-// $KYAULabs: space.js kyau@aura.kyaulabs 2026/11/12 -0800 Exp $
-/* D3 stellar field and orbital motion, behind the supplied upright N artwork. */
+// $KYAULabs: space.js kyau@aura.kyaulabs 2026/11/13 -0800 Exp $
+/* Shared flowing space field, with orbital motion around the upright hero N. */
 'use strict';
 
 const Space = (() => {
-  let timer = null, media = null, stars = null, tracks = null, system = null;
-  let time = 0, lastStarFrame = -1000;
+  let timer = null, media = null, tracks = null, system = null;
+  let time = 0, backgroundMotion = [];
   const orbits = [
     { rx: 211, ry: 102, tilt: -32, phase: 0.5, speed: 0.00026, spin: 0.002, radius: 7, color: 'cyan' },
     { rx: 192, ry: 89, tilt: 31, phase: 3.5, speed: -0.00019, spin: -0.0015, radius: 6, color: 'violet' },
@@ -13,12 +13,6 @@ const Space = (() => {
 
   function render(elapsed) {
     time = elapsed;
-    // This sub-pixel drift is effectively unchanged between nearby frames.
-    // Repaint the distant stars once per second, independently of the orbits.
-    if (elapsed - lastStarFrame >= 1000) {
-      stars.attr('transform', (_d, i) => `translate(${Math.sin(elapsed / 45000 + i) * (i + 1) * 8},${Math.cos(elapsed / 60000 + i) * (i + 1) * 5})`);
-      lastStarFrame = elapsed;
-    }
     tracks.attr('transform', (orbit) => `rotate(${orbit.tilt + elapsed * orbit.spin})`);
     tracks.select('.orbital-globe')
       .attr('cx', (orbit) => Math.cos(orbit.phase + elapsed * orbit.speed) * orbit.rx)
@@ -27,6 +21,7 @@ const Space = (() => {
 
   function syncMotion() {
     const paused = media.matches || document.hidden || document.body.classList.contains('motion-paused');
+    for (const animation of backgroundMotion) animation[paused ? 'pause' : 'play']();
     if (paused && timer) { timer.stop(); timer = null; }
     if (!paused && !timer) {
       const baseline = time;
@@ -42,13 +37,15 @@ const Space = (() => {
   function destroy() {
     if (timer) timer.stop();
     timer = null;
+    for (const animation of backgroundMotion) animation.cancel();
+    backgroundMotion = [];
     if (media) media.removeEventListener('change', syncMotion);
     document.removeEventListener('ngen:motionchange', syncMotion);
     document.removeEventListener('visibilitychange', syncMotion);
-    document.querySelectorAll('.space-field, .space-star-field, .orbit-scene').forEach((el) => el.remove());
+    document.querySelectorAll('.space-cloud-layer, .space-star-layer, .orbit-scene').forEach((el) => el.remove());
     system?.classList.remove('space-ready');
-    media = stars = tracks = system = null;
-    time = 0; lastStarFrame = -1000;
+    media = tracks = system = null;
+    time = 0;
   }
 
   function init() {
@@ -57,7 +54,8 @@ const Space = (() => {
     system = document.querySelector('.orbital-system');
     if (!window.d3 || !background || !system) return; // original SVG remains usable
 
-    const field = d3.select(background).append('svg').attr('class', 'space-field')
+    const nebula = d3.select(background).append('div').attr('class', 'space-cloud-layer');
+    const field = nebula.append('svg').attr('class', 'space-field')
       .attr('viewBox', '0 0 1600 1000').attr('preserveAspectRatio', 'xMidYMid slice').attr('aria-hidden', 'true');
     const random = d3.randomLcg(0.427);
     const fieldDefs = field.append('defs');
@@ -91,15 +89,31 @@ const Space = (() => {
       .selectAll('path').data(clouds).join('path').attr('d', d3.geoPath())
       .attr('fill', (_cloud, i) => i < clouds.length * 0.75 ? 'var(--space-violet)' : 'var(--space-cyan)')
       .attr('opacity', (_cloud, i) => 0.012 + (i / clouds.length) * 0.035);
-    const starField = d3.select(background).append('svg').attr('class', 'space-star-field')
+    const stars = d3.select(background).append('div').attr('class', 'space-star-layer');
+    const starField = stars.append('svg').attr('class', 'space-star-field')
       .attr('viewBox', '0 0 1600 1000').attr('preserveAspectRatio', 'xMidYMid slice').attr('aria-hidden', 'true');
-    stars = starField.selectAll('g.star-layer').data(d3.range(3)).join('g').attr('class', 'star-layer');
-    stars.selectAll('circle').data(() => d3.range(300).map(() => ({
+    const layers = starField.selectAll('g.star-layer').data(d3.range(3)).join('g').attr('class', 'star-layer');
+    layers.selectAll('circle').data(() => d3.range(300).map(() => ({
       x: random() * 1660 - 30, y: random() * 1060 - 30,
       radius: 0.3 + random() ** 3 * 1.8, opacity: 0.12 + random() * 0.76,
     }))).join('circle').attr('class', 'space-star').attr('fill', 'var(--space-star)')
       .attr('cx', (star) => star.x).attr('cy', (star) => star.y)
       .attr('r', (star) => star.radius).attr('opacity', (star) => star.opacity);
+
+    // Let the browser move HTML layers independently of the orbital JS timer.
+    if (background.animate) {
+      for (const [layer, frames, duration] of [
+        [stars, ['translate3d(-7%,-4%,0) scale(1.2)', 'translate3d(7%,4%,0) scale(1.2)'], 45000],
+        [nebula, ['translate3d(-3%,-2%,0) rotate(-1.5deg) scale(1.15)', 'translate3d(3%,2%,0) rotate(1.5deg) scale(1.22)'], 60000],
+      ]) {
+        const animation = layer.node().animate(frames.map((transform) => ({ transform })), {
+          duration, iterations: Infinity, direction: 'alternate', easing: 'ease-in-out',
+        });
+        animation.pause();
+        animation.currentTime = duration / 2; // start where drift is immediately visible
+        backgroundMotion.push(animation);
+      }
+    }
 
     const scene = d3.select(system).append('svg').attr('class', 'orbit-scene')
       .attr('viewBox', '-240 -240 480 480').attr('aria-hidden', 'true');

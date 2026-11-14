@@ -6,7 +6,7 @@ export default defineConfig({
     transform(code, id) {
       if (id === new URL('./space.js', import.meta.url).pathname) return { code: `${code}\nexport { Space };`, map: null };
       if (id === new URL('./app.js', import.meta.url).pathname) {
-        return { code: `${code}\nexport { CONFIG, SNAPSHOT, Utils, Markdown, Theme, Tip, Synth, API, Charts, UI, Docs, ItemModal, ContribModal, Reveal, STATE, boot };`, map: null };
+        return { code: `${code}\nexport { CONFIG, SNAPSHOT, Utils, Markdown, Tip, Synth, API, Charts, UI, Docs, ItemModal, ContribModal, Reveal, STATE, boot };`, map: null };
       }
     },
   }],
@@ -20,7 +20,7 @@ export default defineConfig({
     unstubGlobals: true,
     coverage: {
       provider: 'v8',
-      include: ['app.js', 'theme.js', 'space.js'],
+      include: ['app.js', 'space.js'],
       reporter: ['text', 'json-summary', 'html'],
       thresholds: { lines: 95, statements: 95, functions: 95, branches: 95 },
     },

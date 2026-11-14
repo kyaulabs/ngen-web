@@ -1,7 +1,7 @@
-// $KYAULabs: helpers.test.js kyau@aura.kyaulabs 2026/11/12 -0800 Exp $
+// $KYAULabs: helpers.test.js kyau@aura.kyaulabs 2026/11/13 -0800 Exp $
 import { FixtureSynth as Synth } from '../fixtures.js';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { Utils, Markdown, Theme, Tip, Docs } from '../../app.js';
+import { Utils, Markdown, Tip, Docs } from '../../app.js';
 
 afterEach(() => { vi.useRealTimers(); });
 
@@ -141,25 +141,7 @@ describe('synthetic data invariants', () => {
   });
 });
 
-describe('theme, tooltips and docs tabs', () => {
-  it('toggles accessible state, persists theme and notifies listeners', () => {
-    document.documentElement.dataset.theme = 'dark';
-    document.head.innerHTML = '<meta name="theme-color">';
-    document.body.innerHTML = '<button id="theme-toggle"></button>';
-    Theme._listeners = [];
-    const listener = vi.fn(); Theme.onChange(listener); Theme.init();
-    document.querySelector('button').click();
-    expect(Theme.current()).toBe('light');
-    expect(localStorage.getItem('ngen-theme')).toBe('light');
-    expect(document.querySelector('button').getAttribute('aria-pressed')).toBe('true');
-    expect(listener).toHaveBeenCalledOnce();
-    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('private'); });
-    Theme.toggle();
-    expect(Theme.current()).toBe('dark');
-    document.body.innerHTML = ''; document.head.innerHTML = '';
-    Theme.init(); Theme.toggle();
-    expect(Theme.current()).toBe('light');
-  });
+describe('tooltips and docs tabs', () => {
   it('positions, flips and hides tooltips, tolerating missing markup', () => {
     document.body.innerHTML = '<div id="chart-tip"></div>';
     Tip.init(); Tip.show('<b>tip</b>', 40, 50);
