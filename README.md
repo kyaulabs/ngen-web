@@ -36,7 +36,7 @@ npm ci
 npm run build
 ```
 
-These commands generate minified scripts for tests and release archives. Node.js is build/test tooling, not the website’s runtime. Direct Git-checkout hosting with [NGINX.md](NGINX.md) requires no build.
+`npm run build` minifies application JavaScript with UglifyJS and compiles `styles.scss` with Sass’s compressed output. Sass includes the brand-theme CSS in `styles.min.css`; all scripts and styles loaded by the page are minified. Node.js is build/test tooling, not the website’s runtime.
 
 ## Verification
 
@@ -53,30 +53,33 @@ The viewport matrix covers 390×844 mobile, 320px reflow, 1920×1080, 3840×2160
 
 ## Deployment
 
-Clone directly into the webserver’s site directory:
+Clone and build directly in the webserver’s site directory using Node.js 24+ and npm:
 
 ```sh
-git clone --branch main https://github.com/kyaulabs/ngen-web.git /nginx/git/ngen-web
+git clone --branch main https://github.com/kyaulabs/ngen-web.git /nginx/git/ngen-web &&
+cd /nginx/git/ngen-web &&
+npm ci --include=dev &&
+npm run build
 ```
 
-Use the complete allowlisted server configuration in [NGINX.md](NGINX.md). It serves the checkout directly and maps the three `.min.js` application URLs to tracked source files, so no npm install, build, or Node.js service is needed on the webserver. These public files must remain readable by nginx:
+Use the complete allowlisted server configuration in [NGINX.md](NGINX.md). nginx serves the generated files directly, never a Node.js service or unminified source alias. Re-run `npm ci --include=dev && npm run build` after every pull; build outputs are ignored by Git. When upgrading the previous clone-only setup, replace its nginx source aliases with the new rules and reload nginx. These public files must remain readable by nginx:
 
 ```text
 index.html
-styles.css
-theme.js
-space.js
-app.js
+styles.min.css
+theme.min.js
+space.min.js
+app.min.js
 vendor/d3.min.js
 assets/
 brand/
 ```
 
-No Node.js runtime, PHP application, or database is required on the production server. A production origin has not been configured in this repository; absolute Open Graph image and page URLs should be set when deploying.
+Node.js/npm are needed during deployment to build assets, not to serve requests. No always-running Node.js process, PHP application, or database is required. A production origin has not been configured in this repository; absolute Open Graph image and page URLs should be set when deploying.
 
 ## Documentation
 
-- [nginx deployment](NGINX.md): direct Git-checkout hosting, server configuration, updates, and HTTPS.
+- [nginx deployment](NGINX.md): Git-checkout builds, server configuration, updates, and HTTPS.
 - [Development notes](DEVELOPMENT.md): data behavior, build output, preview tooling, and known verification limits.
 - [Visual brief](DESIGN.md): approved branding, motion, and viewport requirements.
 - [Brand guide](brand/guide/ngen-brand-guide.pdf) and [asset index](brand/README.txt).

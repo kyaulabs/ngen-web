@@ -1,13 +1,15 @@
 # Development
 
-This is a static site adapted from `kyaulabs/prism-web` under AGPL-3.0. It uses vanilla JavaScript, CSS, and the reference site’s vendored D3 v7. nginx serves the built files directly; Node.js/npm are build/test tooling only, not the website’s runtime. There is no upstream application server. The complete NGEN brand pack is retained in `brand/`.
+This is a static site adapted from `kyaulabs/prism-web` under AGPL-3.0. It uses vanilla JavaScript, Sass, and the reference site’s vendored D3 v7. nginx serves the built files directly; Node.js/npm are build/test tooling only, not the website’s runtime. There is no upstream application server. The complete NGEN brand pack is retained in `brand/`.
 
 ```sh
 npm ci
 npm run build
 ```
 
-Use [NGINX.md](NGINX.md) to serve a checkout directly from `/nginx/git/ngen-web`, without installing Node.js or building on the webserver. `index.html` requests `theme.min.js`, `space.min.js`, and `app.min.js`; the checkout nginx configuration aliases these URLs to tracked source files. The commands above generate actual minified scripts for browser tests and release archives. Those generated application scripts are ignored by Git.
+Use [NGINX.md](NGINX.md) to build and serve a checkout at `/nginx/git/ngen-web`. `npm run build` runs UglifyJS for the three application scripts and Sass with compressed output for `styles.scss`. The Sass entry point includes `brand/web/ngen-theme.css` and produces one `styles.min.css`; edit the SCSS source, never the generated CSS. Sass is a build-only dependency. The build also disables source maps and error stylesheets, and exits nonzero on invalid Sass.
+
+`index.html` loads only minified scripts and CSS. Generated application scripts and CSS are ignored by Git, so every deployment must install build dependencies with `npm ci --include=dev` and run `npm run build`. nginx serves those outputs directly, with no source aliases or application server. Browser tests use the same generated files.
 
 ```sh
 npx playwright install chromium
