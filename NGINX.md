@@ -2,26 +2,29 @@
 
 NGEN’s website is a static site. **nginx serves the HTML, CSS, JavaScript, and assets directly. There is no Node.js production server, upstream application, PHP runtime, or database.**
 
-This configuration serves a Git checkout at **`/nginx/git/ngen-web`**. The webserver needs Git and nginx, but **no Node.js, npm install, build step, or separate copy of the site**. `node tests/server.mjs` is only an automated test helper; do not run it in production or proxy nginx to port 4173.
+This configuration serves a Git checkout at **`/nginx/git/ngen-web`**. Deployment needs Git, Node.js 24+, npm, and nginx. **Node.js runs only the build tools; nginx serves the generated files directly.** Do not run `node tests/server.mjs` in production or proxy nginx to port 4173.
 
-## Clone the site
+## Clone and build the site
 
 Run Git as your deployment account, which needs write access to `/nginx/git`. Do not use the nginx worker account for deployment:
 
 ```sh
-git clone --branch main https://github.com/kyaulabs/ngen-web.git /nginx/git/ngen-web
+git clone --branch main https://github.com/kyaulabs/ngen-web.git /nginx/git/ngen-web &&
+cd /nginx/git/ngen-web &&
+npm ci --include=dev &&
+npm run build
 ```
 
-The generated `theme.min.js`, `space.min.js`, and `app.min.js` files are not tracked in Git. The nginx rules below map those existing browser URLs directly to the tracked `theme.js`, `space.js`, and `app.js` files. They serve ordinary browser JavaScript, not a server-side application. Vendored D3, styles, and brand assets are already tracked.
+`npm run build` uses **UglifyJS** for `theme.min.js`, `space.min.js`, and `app.min.js`, and **Sass** to compile `styles.scss` into compressed `styles.min.css`. The Sass entry point includes the supplied brand-theme CSS, so the page needs only one stylesheet. D3 is already vendored and minified.
 
-The aliases deliberately use source files even if an old generated `.min.js` file remains in the checkout, so `git pull` cannot leave nginx serving a stale build.
+Generated JavaScript and CSS are ignored by Git. Build after every clone or pull, and stop if installation or compilation fails. `--include=dev` is required because the minifiers are development dependencies, including when `NODE_ENV=production` is set. nginx has no source fallback: missing build outputs return `404`. Sass compilation failures exit nonzero without generating an error stylesheet.
 
 nginx needs read access to the public files and traversal permission on every parent directory, including `/nginx` and `/nginx/git`. If the checkout was created with restrictive permissions, run the following as its owner, and grant parent-directory traversal through your server’s existing group/ACL policy:
 
 ```sh
 cd /nginx/git/ngen-web
 chmod 0755 . vendor
-chmod 0644 index.html styles.css theme.js space.js app.js vendor/d3.min.js
+chmod 0644 index.html styles.min.css theme.min.js space.min.js app.min.js vendor/d3.min.js
 find assets brand -type d -exec chmod 0755 {} +
 find assets brand -type f -exec chmod 0644 {} +
 ```
@@ -31,6 +34,8 @@ Keep the checkout writable only by the deployment account. nginx does not need w
 ## Configure nginx
 
 Replace `ngen.example.com` with your hostname. Put this complete `server` block in a file included by nginx’s `http` context, using your distribution’s normal virtual-host layout. The root is `/nginx/git/ngen-web`; adjust the MIME include path if your nginx installation uses a different location. Replace any existing generic file-serving or application-proxy rules for this virtual host with the allowlist below.
+
+**Upgrading the previous clone-only setup:** remove its three exact `.min.js` source aliases and replace the virtual-host rules with this block. Old exact aliases override regex rules, and the previous configuration does not allow `styles.min.css`. Validate and reload nginx after changing the configuration.
 
 This port-80 configuration is suitable for an internal nginx server behind an existing HTTPS-terminating proxy, or for an initial local check. **The public browser-facing site should use HTTPS.** For nginx-managed TLS, use the next section.
 
@@ -59,21 +64,13 @@ server {
         try_files /index.html =404;
     }
 
-    # index.html requests these URLs; serve tracked sources without a build.
-    location = /theme.min.js {
-        alias /nginx/git/ngen-web/theme.js;
-    }
-
-    location = /space.min.js {
-        alias /nginx/git/ngen-web/space.js;
-    }
-
-    location = /app.min.js {
-        alias /nginx/git/ngen-web/app.js;
-    }
-
-    location ~ ^/(?:index\.html|styles\.css|vendor/d3\.min\.js)$ {
+    location ~ ^/(?:index\.html|styles\.min\.css|(?:theme|space|app)\.min\.js|vendor/d3\.min\.js)$ {
         try_files $uri =404;
+    }
+
+    # Brand tokens are bundled by Sass, not served as unminified CSS.
+    location ~ ^/(?:assets|brand)/.*\.(?:scss|css|js)$ {
+        return 404;
     }
 
     location ~ ^/(?:assets|brand)/ {
@@ -87,7 +84,7 @@ server {
 }
 ```
 
-There is intentionally no `proxy_pass`, `fastcgi_pass`, or Node.js service. The browser calls the public GitHub API directly; nginx does not need API credentials or a telemetry proxy. The three exact script aliases are the only exceptions to the ban on application source URLs: direct requests to `/app.js`, `/space.js`, and `/theme.js` still return `404`.
+There is intentionally no `proxy_pass`, `fastcgi_pass`, or Node.js service. The browser calls the public GitHub API directly; nginx does not need API credentials or a telemetry proxy. There are no source-file aliases. Direct requests to application JavaScript, `styles.scss`, and the unminified brand-theme CSS return `404`.
 
 Keep MIME mappings enabled: JavaScript, CSS, and SVG must have the correct content types, especially with `nosniff`. The application uses section anchors such as `#vitals`, not server-side routes. Missing assets and unknown paths must return `404`, not a fallback copy of `index.html`.
 
@@ -120,13 +117,16 @@ Certificate issuance/renewal and any ACME challenge location belong to your exis
 
 ## Update the site
 
-Pull the deployment branch as the checkout owner:
+Pull and rebuild as the checkout owner. Keep the commands chained so a failed pull, install, or build stops deployment:
 
 ```sh
-git -C /nginx/git/ngen-web pull --ff-only
+cd /nginx/git/ngen-web &&
+git pull --ff-only &&
+npm ci --include=dev &&
+npm run build
 ```
 
-No build or Node.js process is needed. Keep local changes out of the deployment checkout; if a fast-forward pull fails, inspect the changes rather than discarding them. With the configuration above, ordinary file updates do not require an nginx reload. Validate and reload nginx whenever you change its configuration.
+Keep local changes out of the deployment checkout; if a fast-forward pull fails, inspect the changes rather than discarding them. Check file permissions as above after updates. In-place updates can briefly mix revisions, so use a maintenance window if that is unacceptable. A successful asset rebuild does not require an nginx reload; validate and reload nginx whenever you change its configuration.
 
 ## Validate and reload
 
@@ -141,15 +141,17 @@ Check the public HTTPS endpoint after deployment:
 ```sh
 curl -I https://ngen.example.com/
 curl -I https://ngen.example.com/app.min.js
-curl -I https://ngen.example.com/brand/web/ngen-theme.css
+curl -I https://ngen.example.com/styles.min.css
 curl -I https://ngen.example.com/assets/ngen-orbital-core.svg
 curl -I https://ngen.example.com/app.js
+curl -I https://ngen.example.com/styles.scss
+curl -I https://ngen.example.com/brand/web/ngen-theme.css
 curl -I https://ngen.example.com/package.json
 curl -I https://ngen.example.com/.git/HEAD
 curl -I https://ngen.example.com/not-a-route
 ```
 
-Expect `200` with appropriate HTML, JavaScript, CSS, and SVG content types for the first four requests, and `404` for the last four. For an internal HTTP check, use the internal address and the configured `Host` header instead.
+Expect `200` with appropriate HTML, JavaScript, CSS, and SVG content types for the first four requests, and `404` for the last six. For an internal HTTP check, use the internal address and the configured `Host` header instead.
 
 Finally, open the HTTPS site and check the hero animation, theme toggle, source-command copy button, and dashboard. A GitHub rate limit can legitimately produce snapshot/unavailable-feed states; missing local assets or JavaScript console errors are deployment failures. No process should need to listen on port 4173 in production.
 

@@ -1,3 +1,6 @@
+// $KYAULabs: styles.scss kyau@aura.kyaulabs 2026/11/13 -0800 Exp $
+@use 'brand/web/ngen-theme.css';
+
 /* NGEN visual system, adapted from the KYAU Labs Prism dashboard (AGPL-3.0).
    Layout follows the reference; semantic values come from brand/web/ngen-theme.css. */
 :root {
@@ -1922,3 +1925,4 @@ body.pkg-modal-open { overflow: hidden; }
   .orbital-system { width: min(78vw, 360px); }
   .core-install .clone-cmd { white-space: normal; overflow-wrap: anywhere; }
 }
+// vim: ft=scss sts=2 sw=2 ts=2 et :
