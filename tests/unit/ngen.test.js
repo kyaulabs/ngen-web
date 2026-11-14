@@ -1,10 +1,9 @@
-// $KYAULabs: ngen.test.js kyau@aura.kyaulabs 2026/11/12 -0800 Exp $
+// $KYAULabs: ngen.test.js kyau@aura.kyaulabs 2026/11/13 -0800 Exp $
 import { expect, it, vi } from 'vitest';
 import { API, CONFIG, UI, Reveal, Utils } from '../../app.js';
 
 it('loads telemetry for NGEN without sharing Prism browser storage', () => {
   expect(CONFIG.repo).toBe('ngen');
-  expect(CONFIG.themeKey).toBe('ngen-theme');
   expect(CONFIG.cacheKey).toMatch(/^ngen\./);
 });
 

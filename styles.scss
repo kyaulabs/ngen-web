@@ -1,11 +1,34 @@
 // $KYAULabs: styles.scss kyau@aura.kyaulabs 2026/11/13 -0800 Exp $
-@use 'brand/web/ngen-theme.css';
-
 /* NGEN visual system, adapted from the KYAU Labs Prism dashboard (AGPL-3.0).
-   Layout follows the reference; semantic values come from brand/web/ngen-theme.css. */
+   Dark palette from the supplied brand pack; the website has no light mode. */
 :root {
+  color-scheme: dark;
+  --ngen-bg: #0E222C;
+  --ngen-surface: #14313D;
+  --ngen-surface-alt: #1B4050;
+  --ngen-text: #DDF3F8;
+  --ngen-muted: #A9C5D0;
+  --ngen-border: #315362;
+  --ngen-control-border: #7899A6;
+  --ngen-accent: #63DDF8;
+  --ngen-accent-hover: #89E8FA;
+  --ngen-on-accent: #08212B;
+  --ngen-secondary: #B6A5FF;
+  --ngen-on-secondary: #21163A;
+  --ngen-focus: #89E8FA;
+  --ngen-success: #7FDFBB;
+  --ngen-warning: #FFD38A;
+  --ngen-danger: #FFA9AC;
+  --ngen-font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --ngen-font-mono: ui-monospace, 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
   --font-display: var(--ngen-font-sans);
   --font-mono: var(--ngen-font-mono);
+  --space-bg: #020608;
+  --space-star: var(--ngen-text);
+  --space-muted: var(--ngen-muted);
+  --space-cyan: var(--ngen-accent);
+  --space-violet: var(--ngen-secondary);
+  --space-shadow: var(--ngen-bg);
   --bg-0: var(--ngen-bg);
   --bg-1: var(--ngen-surface-alt);
   --panel: color-mix(in srgb, var(--ngen-surface) 88%, transparent);
@@ -27,7 +50,7 @@
   --bad: var(--ngen-danger);
   --glow: 0 0 34px color-mix(in srgb, var(--ngen-accent) 22%, transparent);
   --grid-line: color-mix(in srgb, var(--ngen-border) 18%, transparent);
-  --shadow: 0 24px 60px color-mix(in srgb, var(--ngen-bg) 55%, transparent);
+  --shadow: 0 24px 60px color-mix(in srgb, var(--space-shadow) 55%, transparent);
   --scanline-op: 0.025;
   --glass-blur: 16px;
   --heat-0: color-mix(in srgb, var(--ngen-muted) 10%, transparent);
@@ -41,7 +64,6 @@
   --radius-sm: 9px;
   --speed: 0.28s;
 }
-[data-theme='light'] { --scanline-op: 0; }
 /* ----------------------------------------------------------------------------
    02. BASE & RESET
    ------------------------------------------------------------------------- */
@@ -54,7 +76,7 @@ html {
 
 body {
   font-family: var(--font-display);
-  background: var(--bg-0);
+  background: var(--space-bg);
   color: var(--ink-0);
   line-height: 1.55;
   min-height: 100vh;
@@ -86,7 +108,7 @@ img { max-width: 100%; display: block; }
    03. ATMOSPHERE
    ------------------------------------------------------------------------- */
 
-/* CRT scanline overlay; opacity drops to zero in light mode. */
+/* Faint CRT scanline overlay. */
 .scanlines {
   position: fixed;
   inset: 0;
@@ -100,20 +122,6 @@ img { max-width: 100%; display: block; }
   );
   mix-blend-mode: overlay;
   transition: opacity var(--speed) ease;
-}
-
-/* Faint blueprint grid laid over the page background. */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background-image:
-    linear-gradient(var(--grid-line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
-  background-size: 44px 44px;
-  mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, #000 30%, transparent 100%);
 }
 
 /* ----------------------------------------------------------------------------
@@ -154,10 +162,6 @@ body::before {
   width: 144px; height: auto;
   flex: 0 0 auto;
 }
-/* Toggle the supplied SVG variants with the explicit site theme. */
-.brand-mark-light { display: none; }
-[data-theme='light'] .brand-mark-dark { display: none; }
-[data-theme='light'] .brand-mark-light { display: inline-block; }
 .brand-sub {
   font-family: var(--font-mono);
   font-size: 0.68rem;
@@ -242,11 +246,6 @@ body::before {
 .icon-btn:hover { color: var(--accent); border-color: var(--accent); transform: translateY(-1px); }
 .icon-btn svg { width: 18px; height: 18px; }
 
-/* Theme toggle swaps which icon is visible. */
-#theme-toggle .ico-sun { display: none; }
-[data-theme='light'] #theme-toggle .ico-sun { display: block; }
-[data-theme='light'] #theme-toggle .ico-moon { display: none; }
-
 .badge {
   display: inline-flex;
   align-items: center;
@@ -307,32 +306,26 @@ a.chip:hover {
 /* ----------------------------------------------------------------------------
    06. HERO + HUD FURNITURE
    ------------------------------------------------------------------------- */
-/* The user requested deep space in the hero in both modes, not the dashboard. */
+/* The hero and overlaid navigation use the deepest space treatment. */
 .hero, .nav.over-hero {
-  --bg-0: #020608;
+  --bg-0: var(--space-bg);
   --bg-1: #14313D;
   --panel: rgba(20, 49, 61, 0.85);
   --panel-solid: #14313D;
   --panel-2: rgba(27, 64, 80, 0.65);
-  --ink-0: #DDF3F8;
-  --ink-1: #A9C5D0;
-  --ink-2: #A9C5D0;
-  --accent: #63DDF8;
-  --accent-2: #B6A5FF;
+  --ink-0: var(--space-star);
+  --ink-1: var(--space-muted);
+  --ink-2: var(--space-muted);
+  --accent: var(--space-cyan);
+  --accent-2: var(--space-violet);
   --accent-ink: #08212B;
   --accent-dim: rgba(99, 221, 248, 0.08);
   --line: #315362;
   --line-strong: #7899A6;
   --glow: 0 0 34px rgba(99, 221, 248, 0.16);
 }
-.nav.over-hero .brand-mark-dark { display: block; }
-.nav.over-hero .brand-mark-light { display: none; }
 .hero {
-  --space-star: #DDF3F8;
-  --space-cyan: #63DDF8;
-  --space-violet: #B6A5FF;
-  --space-shadow: #0E222C;
-  background: var(--bg-0);
+  background: transparent;
   position: relative;
   min-height: 100svh;
   display: flex;
@@ -344,8 +337,8 @@ a.chip:hover {
   overflow: hidden;
 }
 
-/* Cinematic radial vignette behind the hero copy. */
-.hero::before {
+/* The same vignette follows the shared viewport-sized space field. */
+.space-background::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -586,7 +579,7 @@ a.chip:hover {
 }
 
 /* Keep the page footer clear of the docked ticker. */
-body.ticker-docked { padding-bottom: var(--ticker-h); }
+body.ticker-docked .footer { padding-bottom: calc(34px + var(--ticker-h)); }
 
 /* ----------------------------------------------------------------------------
    08. SECTION SCAFFOLDING
@@ -1734,9 +1727,7 @@ body.pkg-modal-open { overflow: hidden; }
   z-index: 1;
   margin-top: clamp(70px, 10vw, 120px);
   border-top: 1px solid var(--line);
-  background: color-mix(in srgb, var(--bg-1) 88%, transparent);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: var(--bg-1);
   padding: 48px clamp(20px, 4vw, 48px) 34px;
 }
 
@@ -1871,14 +1862,18 @@ body.pkg-modal-open { overflow: hidden; }
   .reveal { opacity: 1; transform: none; }
 }
 
-/* D3 simulation behind the supplied N. The full schematic is the no-JS fallback. */
+/* Shared space backdrop; the N and its orbital tracks stay inside the hero. */
 .space-background {
-  position: absolute; inset: 0; z-index: 0;
+  position: fixed; inset: 0; z-index: 0;
+  background: var(--space-bg);
   pointer-events: none; overflow: hidden;
 }
-.space-field, .space-star-field {
+.space-cloud-layer, .space-star-layer, .space-field, .space-star-field {
   position: absolute; inset: 0; display: block; width: 100%; height: 100%;
-  transform: translateZ(0);
+}
+.space-cloud-layer, .space-star-layer {
+  transform-origin: center;
+  will-change: transform;
 }
 .space-star { fill: var(--space-star); }
 .orbit-scene { position: absolute; inset: 0; width: 100%; height: 100%; }

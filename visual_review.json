@@ -12,10 +12,11 @@
       "readySelector": "body.loaded",
       "states": [
         { "id": "dark", "colorScheme": "dark", "actions": [] },
-        { "id": "light", "colorScheme": "light", "actions": [] },
         { "id": "offline-dark", "colorScheme": "dark", "actions": [] },
         { "id": "tracker-dark", "colorScheme": "dark", "actions": [{ "type": "click", "selector": "#issues-list .term-open" }] },
-        { "id": "contributor-light", "colorScheme": "light", "actions": [{ "type": "click", "selector": ".contrib-card" }] }
+        { "id": "contributor-dark", "colorScheme": "dark", "actions": [{ "type": "click", "selector": ".contrib-card" }] },
+        { "id": "scrolled-dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": "#activity .sec-head" }] },
+        { "id": "footer-dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": ".footer" }] }
       ]
     }
   ]

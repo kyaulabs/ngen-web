@@ -20,7 +20,7 @@
 The site combines NGEN’s visual identity with a public repository dashboard adapted from [Prism Web](https://github.com/kyaulabs/prism-web).
 
 - A D3 space scene with a dense star field, organic cyan/violet nebulae, rotating orbital tracks, and globes circling the N mark.
-- A dark hero in both color modes, with theme-aware navigation and dashboard panels below it.
+- A responsive, viewport-fixed space background behind the hero and dashboard until the footer, with visible star drift and flowing nebulae. The site is dark-only, including panels, navigation, dialogs, and footer.
 - Repository counters, commit activity, language composition, estimated daily activity, branches, releases, issues, pull requests, and contributor profiles from `kyaulabs/ngen`.
 - A source-clone command and a Games directory, currently showing “No games announced yet.”
 - Keyboard-operable dialogs, reduced-motion support, and an animation pause control.
@@ -36,7 +36,7 @@ npm ci
 npm run build
 ```
 
-`npm run build` minifies application JavaScript with UglifyJS and compiles `styles.scss` with Sass’s compressed output. Sass includes the brand-theme CSS in `styles.min.css`; all scripts and styles loaded by the page are minified. Node.js is build/test tooling, not the website’s runtime.
+`npm run build` minifies application JavaScript with UglifyJS and compiles `styles.scss` with Sass’s compressed output. Sass compiles the site’s dark brand palette into `styles.min.css`; all scripts and styles loaded by the page are minified. Node.js is build/test tooling, not the website’s runtime.
 
 ## Verification
 
@@ -49,7 +49,7 @@ npm run check
 
 This runs ESLint, Vitest with 95% aggregate coverage thresholds, the production build, and Chromium behavior and visual-capture checks. Browser tests use controlled fixtures instead of live external services.
 
-The viewport matrix covers 390×844 mobile, 320px reflow, 1920×1080, 3840×2160, and 3840×2400, including both themes. Working screenshots remain ignored under `tests/Browser/Screenshots/`.
+The viewport matrix covers 390×844 mobile, 320px reflow, 1920×1080, 3840×2160, and 3840×2400 in dark mode, plus a check that saved or system light preferences are ignored. Working screenshots remain ignored under `tests/Browser/Screenshots/`.
 
 ## Deployment
 
@@ -67,7 +67,6 @@ Use the complete allowlisted server configuration in [NGINX.md](NGINX.md). nginx
 ```text
 index.html
 styles.min.css
-theme.min.js
 space.min.js
 app.min.js
 vendor/d3.min.js

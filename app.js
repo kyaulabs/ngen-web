@@ -1,4 +1,4 @@
-// $KYAULabs: app.js kyau@aura.kyaulabs 2026/11/12 -0800 Exp $
+// $KYAULabs: app.js kyau@aura.kyaulabs 2026/11/13 -0800 Exp $
 /* NGEN telemetry dashboard. Adapted from the KYAU Labs Prism dashboard (AGPL-3.0).
    Public GitHub data is untrusted; escape text and sanitize markdown links.
    Snapshot: data/snapshot.json. Missing record feeds remain empty. */
@@ -14,7 +14,6 @@ const CONFIG = {
   apiBase: 'https://api.github.com',
   cacheKey: 'ngen.telemetry.v1.',  // sessionStorage namespace prefix
   cacheTTLms: 10 * 60 * 1000,       // 10 minute cache lifetime
-  themeKey: 'ngen-theme',          // localStorage key for the theme choice
   perPage: { commits: 14, issues: 30, pulls: 12, releases: 8, branches: 100, contributors: 10 },
 };
 
@@ -567,41 +566,6 @@ const Markdown = {
 };
 
 /* ----------------------------------------------------------------------------
- * Theme — dark/light manager.
- * Persists the choice, honors the OS preference on first visit, and notifies
- * registered listeners (canvas recolor, chart rebuild) after every toggle.
- * ------------------------------------------------------------------------- */
-const Theme = {
-  /** @type {Array<() => void>} Post-toggle listeners. */
-  _listeners: [],
-
-  /** Register a callback fired after the theme changes. */
-  onChange(fn) { this._listeners.push(fn); },
-
-  /** @returns {'dark'|'light'} The active theme. */
-  current() { return document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'; },
-
-  /** Wire the toggle button; the initial theme was applied pre-paint in <head>. */
-  init() {
-    const btn = Utils.$('#theme-toggle');
-    if (!btn) return;
-    btn.setAttribute('aria-pressed', String(this.current() === 'light'));
-    btn.addEventListener('click', () => this.toggle());
-  },
-
-  /** Flip the theme, persist it, update chrome, notify listeners. */
-  toggle() {
-    const next = this.current() === 'dark' ? 'light' : 'dark';
-    document.documentElement.dataset.theme = next;
-    try { localStorage.setItem(CONFIG.themeKey, next); } catch (e) { /* private mode */ }
-    const meta = Utils.$('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', next === 'dark' ? '#0E222C' : '#EAF8FB');
-    Utils.$('#theme-toggle')?.setAttribute('aria-pressed', String(next === 'light'));
-    this._listeners.forEach((fn) => fn());
-  },
-};
-
-/* ----------------------------------------------------------------------------
  * Tip — shared tooltip singleton for all D3 charts.
  * ------------------------------------------------------------------------- */
 const Tip = {
@@ -933,7 +897,7 @@ const API = {
 
 const Charts = {
   /**
-   * Theme-aware palette for chart chrome.
+   * Brand palette for chart chrome.
    * @returns {{accent:string,accent2:string,accent3:string,ink:string,ink2:string,
    *           grid:string,heat:string[]}}
    */
@@ -1148,7 +1112,7 @@ const Charts = {
       .map(([name, bytes]) => ({ name, bytes }))
       .sort((a, b) => b.bytes - a.bytes);
     const total = d3.sum(entries, (d) => d.bytes) || 1;
-    /* Theme-tied spectral ramp: slices are colored by rank along an
+    /* Brand spectral ramp: slices are colored by rank along an
        accent → accent-2 → accent-3 interpolation (cyan → violet → pink),
        so the donut always matches the active theme's palette. */
     const ramp = d3.interpolateRgbBasis([pal.accent, pal.accent2, pal.accent3]);
@@ -2382,12 +2346,11 @@ const Reveal = {
 const STATE = { data: null };
 
 /**
- * Application entry point. Boots static chrome immediately (theme, canvas,
+ * Application entry point. Boots static chrome immediately (motion controls,
  * reveals), then hydrates the dashboard from the GitHub API and renders all
  * data-driven sections + charts.
  */
 async function boot() {
-  Theme.init();
   Tip.init();
   Reveal.init();
   UI.renderHud();
@@ -2447,10 +2410,6 @@ async function boot() {
   };
   window.addEventListener('scroll', syncScrollChrome, { passive: true });
   syncScrollChrome();
-
-  /* Charts must repaint against the new theme palette on every flip.
-   * The orbital background follows the same theme through CSS. */
-  Theme.onChange(Utils.debounce(() => { if (STATE.data) Charts.buildAll(STATE.data); }, 140));
 
   /* Debounced rebuild keeps chart geometry honest across resizes. */
   window.addEventListener('resize', Utils.debounce(() => {

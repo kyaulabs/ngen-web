@@ -1,13 +1,13 @@
 {
   "name": "@kyaulabs/ngen-web",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "engines": {
     "node": ">=24"
   },
   "scripts": {
     "build": "npm run build:js && npm run build:css",
-    "build:js": "uglifyjs theme.js --compress --mangle --output theme.min.js && uglifyjs space.js --compress --mangle --output space.min.js && uglifyjs app.js --compress --mangle --output app.min.js && node --check theme.min.js && node --check space.min.js && node --check app.min.js",
+    "build:js": "uglifyjs space.js --compress --mangle --output space.min.js && uglifyjs app.js --compress --mangle --output app.min.js && node --check space.min.js && node --check app.min.js",
     "build:css": "sass --style=compressed --no-source-map --no-error-css styles.scss styles.min.css",
     "lint": "eslint .",
     "test": "vitest run",
