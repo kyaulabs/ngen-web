@@ -36,7 +36,7 @@ npm ci
 npm run build
 ```
 
-Serve the built files with nginx using [NGINX.md](NGINX.md). Rebuild after changing JavaScript: the page loads generated `theme.min.js`, `space.min.js`, and `app.min.js`. Node.js is build/test tooling, not the website’s runtime.
+These commands generate minified scripts for tests and release archives. Node.js is build/test tooling, not the website’s runtime. Direct Git-checkout hosting with [NGINX.md](NGINX.md) requires no build.
 
 ## Verification
 
@@ -53,16 +53,20 @@ The viewport matrix covers 390×844 mobile, 320px reflow, 1920×1080, 3840×2160
 
 ## Deployment
 
-Build from source with `npm ci && npm run build`, or use the static-site archive attached to a [website release](https://github.com/kyaulabs/ngen-web/releases). Release archives include SHA-256 checksums.
+Clone directly into the webserver’s site directory:
 
-Follow [NGINX.md](NGINX.md) for static-file deployment, HTTPS, configuration validation, and reload instructions. nginx serves these files directly; it must not proxy to a Node.js application:
+```sh
+git clone --branch main https://github.com/kyaulabs/ngen-web.git /nginx/git/ngen-web
+```
+
+Use the complete allowlisted server configuration in [NGINX.md](NGINX.md). It serves the checkout directly and maps the three `.min.js` application URLs to tracked source files, so no npm install, build, or Node.js service is needed on the webserver. These public files must remain readable by nginx:
 
 ```text
 index.html
 styles.css
-theme.min.js
-space.min.js
-app.min.js
+theme.js
+space.js
+app.js
 vendor/d3.min.js
 assets/
 brand/
@@ -72,7 +76,7 @@ No Node.js runtime, PHP application, or database is required on the production s
 
 ## Documentation
 
-- [nginx deployment](NGINX.md): production file layout, server configuration, and HTTPS.
+- [nginx deployment](NGINX.md): direct Git-checkout hosting, server configuration, updates, and HTTPS.
 - [Development notes](DEVELOPMENT.md): data behavior, build output, preview tooling, and known verification limits.
 - [Visual brief](DESIGN.md): approved branding, motion, and viewport requirements.
 - [Brand guide](brand/guide/ngen-brand-guide.pdf) and [asset index](brand/README.txt).
