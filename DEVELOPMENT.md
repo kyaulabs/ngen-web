@@ -11,6 +11,8 @@ Use [NGINX.md](NGINX.md) to build and serve a checkout at `/nginx/git/ngen-web`.
 
 `index.html` loads only minified scripts and CSS. Generated application scripts and CSS are ignored by Git, so every deployment must install build dependencies with `npm ci --include=dev` and run `npm run build`. nginx serves those outputs directly, with no source aliases or application server. Browser tests use the same generated files. There is no theme switch, preference manager, or theme bootstrap script; stored light preferences and OS color schemes do not affect the page. Original light assets remain only in the supplied brand pack, not in the active page or compiled stylesheet.
 
+Application asset URLs carry the website version as a cache key so returning visitors cannot reuse the old light stylesheet or theme manager. When preparing a release, update their `?v=` values in `index.html` with the package version; browser tests enforce this.
+
 ```sh
 npx playwright install chromium
 npm run check

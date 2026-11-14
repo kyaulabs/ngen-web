@@ -31,12 +31,15 @@ test('preserves the dashboard with NGEN identity, live charts and an honest game
 test('serves generated minified assets rather than source aliases', async ({ page }) => {
   await load(page);
   const assets = await page.locator('script[src], link[rel="stylesheet"]').evaluateAll((nodes) => nodes.map((node) => node.getAttribute('src') || node.getAttribute('href')));
+  const { version } = JSON.parse(await readFile('package.json', 'utf8'));
   for (const file of assets) {
-    expect(file).toMatch(/\.min\.(?:js|css)$/);
+    const url = new URL(file, page.url());
+    expect(url.pathname).toMatch(/\.min\.(?:js|css)$/);
+    if (url.pathname !== '/vendor/d3.min.js') expect(url.searchParams.get('v')).toBe(version);
     const response = await page.request.get(`/${file}`);
     expect(response.status()).toBe(200);
-    expect(response.headers()['content-type']).toMatch(file.endsWith('.css') ? /text\/css/ : /(?:application|text)\/javascript/);
-    expect(await response.body()).toEqual(await readFile(file));
+    expect(response.headers()['content-type']).toMatch(url.pathname.endsWith('.css') ? /text\/css/ : /(?:application|text)\/javascript/);
+    expect(await response.body()).toEqual(await readFile(url.pathname.slice(1)));
   }
 });
 
@@ -66,6 +69,24 @@ test('ignores saved light mode and system color preferences without exposing a t
   await page.reload();
   await expect(page.locator('body')).toHaveClass(/loaded/);
   await expect(page.locator('html')).toHaveCSS('color-scheme', 'dark');
+});
+
+test('bypasses cached light-theme styles and scripts when upgrading the site', async ({ page }) => {
+  const reused = [];
+  // Model the previous one-hour cache entries for unversioned application URLs.
+  await page.route(/\/(?:styles\.min\.css|app\.min\.js|space\.min\.js)$/, async (route) => {
+    const css = route.request().url().endsWith('.css');
+    reused.push(route.request().url());
+    await route.fulfill({
+      contentType: css ? 'text/css' : 'text/javascript',
+      body: css ? 'html{color-scheme:light}body{background:white;color:black}' : 'document.documentElement.dataset.theme = "light";',
+    });
+  });
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveCSS('color-scheme', 'dark');
+  await expect(page.locator('body')).toHaveClass(/loaded/);
+  await expect(page.locator('html')).not.toHaveAttribute('data-theme');
+  expect(reused).toEqual([]);
 });
 
 test('keeps viewport-sized space behind the dashboard with an opaque footer', async ({ page }) => {
