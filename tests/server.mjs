@@ -5,7 +5,7 @@ import { extname, resolve } from 'node:path';
 
 const root = process.cwd();
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.ico': 'image/x-icon' };
-const publicFiles = new Set(['/index.html', '/styles.min.css', '/app.min.js', '/theme.min.js', '/space.min.js', '/vendor/d3.min.js']);
+const publicFiles = new Set(['/index.html', '/styles.min.css', '/app.min.js', '/space.min.js', '/vendor/d3.min.js']);
 
 createServer(async (request, response) => {
   try {

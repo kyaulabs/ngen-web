@@ -15,7 +15,7 @@ npm ci --include=dev &&
 npm run build
 ```
 
-`npm run build` uses **UglifyJS** for `theme.min.js`, `space.min.js`, and `app.min.js`, and **Sass** to compile `styles.scss` into compressed `styles.min.css`. The Sass entry point includes the supplied brand-theme CSS, so the page needs only one stylesheet. D3 is already vendored and minified.
+`npm run build` uses **UglifyJS** for `space.min.js` and `app.min.js`, and **Sass** to compile `styles.scss` into compressed `styles.min.css`. The Sass entry point uses the supplied brand’s dark palette, so the dark-only page needs only one stylesheet. D3 is already vendored and minified.
 
 Generated JavaScript and CSS are ignored by Git. Build after every clone or pull, and stop if installation or compilation fails. `--include=dev` is required because the minifiers are development dependencies, including when `NODE_ENV=production` is set. nginx has no source fallback: missing build outputs return `404`. Sass compilation failures exit nonzero without generating an error stylesheet.
 
@@ -24,7 +24,7 @@ nginx needs read access to the public files and traversal permission on every pa
 ```sh
 cd /nginx/git/ngen-web
 chmod 0755 . vendor
-chmod 0644 index.html styles.min.css theme.min.js space.min.js app.min.js vendor/d3.min.js
+chmod 0644 index.html styles.min.css space.min.js app.min.js vendor/d3.min.js
 find assets brand -type d -exec chmod 0755 {} +
 find assets brand -type f -exec chmod 0644 {} +
 ```
@@ -35,7 +35,7 @@ Keep the checkout writable only by the deployment account. nginx does not need w
 
 Replace `ngen.example.com` with your hostname. Put this complete `server` block in a file included by nginx’s `http` context, using your distribution’s normal virtual-host layout. The root is `/nginx/git/ngen-web`; adjust the MIME include path if your nginx installation uses a different location. Replace any existing generic file-serving or application-proxy rules for this virtual host with the allowlist below.
 
-**Upgrading the previous clone-only setup:** remove its three exact `.min.js` source aliases and replace the virtual-host rules with this block. Old exact aliases override regex rules, and the previous configuration does not allow `styles.min.css`. Validate and reload nginx after changing the configuration.
+**Upgrading the previous clone-only setup:** remove its three exact `.min.js` source aliases and replace the virtual-host rules with this block. Old exact aliases override regex rules, and the previous configuration does not allow `styles.min.css`. The dark-only site also removes `theme.min.js`; remove its old allowance and unused generated file when upgrading. Validate and reload nginx after changing the configuration.
 
 This port-80 configuration is suitable for an internal nginx server behind an existing HTTPS-terminating proxy, or for an initial local check. **The public browser-facing site should use HTTPS.** For nginx-managed TLS, use the next section.
 
@@ -64,7 +64,7 @@ server {
         try_files /index.html =404;
     }
 
-    location ~ ^/(?:index\.html|styles\.min\.css|(?:theme|space|app)\.min\.js|vendor/d3\.min\.js)$ {
+    location ~ ^/(?:index\.html|styles\.min\.css|(?:space|app)\.min\.js|vendor/d3\.min\.js)$ {
         try_files $uri =404;
     }
 
@@ -153,6 +153,6 @@ curl -I https://ngen.example.com/not-a-route
 
 Expect `200` with appropriate HTML, JavaScript, CSS, and SVG content types for the first four requests, and `404` for the last six. For an internal HTTP check, use the internal address and the configured `Host` header instead.
 
-Finally, open the HTTPS site and check the hero animation, theme toggle, source-command copy button, and dashboard. A GitHub rate limit can legitimately produce snapshot/unavailable-feed states; missing local assets or JavaScript console errors are deployment failures. No process should need to listen on port 4173 in production.
+Finally, open the HTTPS site and check the hero/background animation, source-command copy button, and dashboard. Confirm the page stays dark even with a light OS preference or an old saved light preference. A GitHub rate limit can legitimately produce snapshot/unavailable-feed states; missing local assets or JavaScript console errors are deployment failures. No process should need to listen on port 4173 in production.
 
 See [DEVELOPMENT.md](DEVELOPMENT.md) for build/test tooling. Set absolute Open Graph image and page URLs in `index.html` once the production origin is known.

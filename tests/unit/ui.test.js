@@ -1,8 +1,8 @@
-// $KYAULabs: ui.test.js kyau@aura.kyaulabs 2026/11/12 -0800 Exp $
+// $KYAULabs: ui.test.js kyau@aura.kyaulabs 2026/11/13 -0800 Exp $
 import { FixtureSynth as Synth } from '../fixtures.js';
 import { readFileSync } from 'node:fs';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
-import { API, UI, ItemModal, ContribModal, Reveal, Theme, Charts, STATE, Utils, boot } from '../../app.js';
+import { API, UI, ItemModal, ContribModal, Reveal, Charts, STATE, Utils, boot } from '../../app.js';
 
 let data;
 let listeners;
@@ -14,7 +14,6 @@ beforeEach(async () => {
   data = { ...await API.loadAll(), ticker: Synth.tickerCommits(), releases: Synth.releases() };
   STATE.data = data;
   UI._tracker = {};
-  Theme._listeners = [];
   listeners = [];
   for (const target of [window, document]) {
     const original = target.addEventListener.bind(target);
@@ -200,10 +199,10 @@ describe('copy controls, reveals and boot', () => {
     expect(document.querySelectorAll('.ticker-spacer')).toHaveLength(1);
     vi.spyOn(window, 'scrollY', 'get').mockReturnValue(0); window.dispatchEvent(new Event('scroll'));
     expect(document.querySelector('.ticker').parentElement).toBe(originalParent);
-    Theme.toggle(); window.dispatchEvent(new Event('resize')); vi.advanceTimersByTime(300);
-    expect(Charts.buildAll).toHaveBeenCalledTimes(3);
-    STATE.data = null; Theme.toggle(); window.dispatchEvent(new Event('resize')); vi.advanceTimersByTime(300);
-    expect(Charts.buildAll).toHaveBeenCalledTimes(3);
+    window.dispatchEvent(new Event('resize')); vi.advanceTimersByTime(300);
+    expect(Charts.buildAll).toHaveBeenCalledTimes(2);
+    STATE.data = null; window.dispatchEvent(new Event('resize')); vi.advanceTimersByTime(300);
+    expect(Charts.buildAll).toHaveBeenCalledTimes(2);
   });
   it('boots without ticker or navigation markup', async () => {
     document.querySelector('.ticker').remove(); document.querySelector('.nav').remove();

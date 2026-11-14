@@ -1,4 +1,4 @@
-// $KYAULabs: modals.test.js kyau@aura.kyaulabs 2026/11/12 -0800 Exp $
+// $KYAULabs: modals.test.js kyau@aura.kyaulabs 2026/11/13 -0800 Exp $
 import { FixtureSynth as Synth } from '../fixtures.js';
 import { readFileSync } from 'node:fs';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
@@ -30,7 +30,7 @@ const open = (modal) => {
 
 describe.each([['item', ItemModal], ['contributor', ContribModal]])('%s modal accessibility', (_name, modal) => {
   it('opens, focuses close, dismisses with Escape and restores origin focus', async () => {
-    const origin = document.querySelector('#theme-toggle'); origin.focus();
+    const origin = document.querySelector('#motion-toggle'); origin.focus();
     key(document, 'Escape'); open(modal); await Promise.resolve();
     vi.advanceTimersByTime(20);
     expect(modal.el.hidden).toBe(false);

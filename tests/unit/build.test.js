@@ -11,7 +11,7 @@ function fixture() {
   copyFileSync('package.json', join(directory, 'package.json'));
   symlinkSync(resolve('node_modules'), join(directory, 'node_modules'), 'dir');
   mkdirSync(join(directory, 'brand/web'), { recursive: true });
-  for (const name of ['theme', 'space', 'app']) writeFileSync(join(directory, `${name}.js`), `/* Production build fixture. */\nconst value = 40;\nglobalThis.result = value + 2;\n`);
+  for (const name of ['space', 'app']) writeFileSync(join(directory, `${name}.js`), `/* Production build fixture. */\nconst value = 40;\nglobalThis.result = value + 2;\n`);
   writeFileSync(join(directory, 'brand/web/ngen-theme.css'), '/* Brand tokens. */\n:root { --accent: #63ddf8; }\n');
   writeFileSync(join(directory, 'styles.scss'), '@use "brand/web/ngen-theme.css";\n$spacing: 4px;\n.fixture {\n  color: var(--accent);\n  padding: $spacing * 2;\n}\n');
   return directory;
@@ -21,7 +21,7 @@ it('builds minified JavaScript and a compressed Sass bundle from clean deploymen
   const directory = fixture();
   try {
     execFileSync('npm', ['run', 'build'], { cwd: directory, stdio: 'pipe' });
-    for (const name of ['theme', 'space', 'app']) {
+    for (const name of ['space', 'app']) {
       const output = readFileSync(join(directory, `${name}.min.js`), 'utf8');
       const context = {};
       runInNewContext(output, context);
