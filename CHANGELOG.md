@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.\
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines
 and [Semantic Versioning](https://semver.org/spec/v2.0.0.html) for versioning adherance.
 
+## [💾](https://github.com/kyaulabs/ngen-web/releases/tag/v0.1.2) [0.1.2](https://github.com/kyaulabs/ngen-web/compare/v0.1.1...v0.1.2) - (2026-11-14)
+
+### 🚀 Features
+
+- [Web] Extend flowing space background and make the site dark-only ([66e2ca9](https://github.com/kyaulabs/ngen-web/commit/66e2ca9bbead73f6f33a48cdbcc1425d3760d68a))
+- [Web] Add fixed flowing space background and dark-only mode (#11) ([92f725e](https://github.com/kyaulabs/ngen-web/commit/92f725e77f2abdc27907ec6dc5e8c9a4ead3cdd6))
+<!-- Auto-generated on 2026-11-13T22:12:18.761580997-08:00 -->
 ## [💾](https://github.com/kyaulabs/ngen-web/releases/tag/v0.1.1) [0.1.1](https://github.com/kyaulabs/ngen-web/compare/v0.1.0...v0.1.1) - (2026-11-14)
 
 ### 📝 Documentation
