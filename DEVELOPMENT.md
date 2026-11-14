@@ -7,7 +7,7 @@ npm ci
 npm run build
 ```
 
-Use [NGINX.md](NGINX.md) for interactive previews and production hosting. Build before serving: `index.html` loads generated `theme.min.js`, `space.min.js`, and `app.min.js`. Deploy those files with `index.html`, `styles.css`, `vendor/d3.min.js`, `assets/`, and `brand/`. Generated application scripts are ignored by Git.
+Use [NGINX.md](NGINX.md) to serve a checkout directly from `/nginx/git/ngen-web`, without installing Node.js or building on the webserver. `index.html` requests `theme.min.js`, `space.min.js`, and `app.min.js`; the checkout nginx configuration aliases these URLs to tracked source files. The commands above generate actual minified scripts for browser tests and release archives. Those generated application scripts are ignored by Git.
 
 ```sh
 npx playwright install chromium
