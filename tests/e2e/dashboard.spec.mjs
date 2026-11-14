@@ -1,4 +1,4 @@
-// $KYAULabs: dashboard.spec.mjs kyau@aura.kyaulabs 2026/11/13 -0800 Exp $
+// $KYAULabs: dashboard.spec.mjs kyau@aura.kyaulabs 2026/11/14 -0800 Exp $
 import { readFile } from 'node:fs/promises';
 import { test, expect } from '@playwright/test';
 import { controlNetwork } from '../network.mjs';
@@ -9,6 +9,17 @@ test.beforeEach(async ({ page }) => { await controlNetwork(page); });
 async function load(page) {
   await page.goto('/');
   await expect(page.locator('body')).toHaveClass(/loaded/);
+}
+
+async function paintedColor(locator, property = 'backgroundColor') {
+  return locator.evaluate((element, key) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 1;
+    const context = canvas.getContext('2d');
+    context.fillStyle = getComputedStyle(element)[key];
+    context.fillRect(0, 0, 1, 1);
+    return [...context.getImageData(0, 0, 1, 1).data];
+  }, property);
 }
 
 test('preserves the dashboard with NGEN identity, live charts and an honest game directory', async ({ page }) => {
@@ -26,6 +37,83 @@ test('preserves the dashboard with NGEN identity, live charts and an honest game
   await expect(page.locator('#games')).toContainText('No games announced yet');
   await expect(page.locator('a[href*="github.com/kyaulabs/prism"]')).toHaveCount(1); // attribution only
   expect(errors).toEqual([]);
+});
+
+test('shares compact transparent controls with hover borders and visible keyboard focus', async ({ page }) => {
+  await load(page);
+  const live = page.locator('#feed-badge');
+  const badgeBox = await live.boundingBox();
+  for (const selector of ['#motion-toggle', '.nav-gh']) {
+    const box = await page.locator(selector).boundingBox();
+    expect(box.height).toBeCloseTo(badgeBox.height, 1);
+    expect(box.width).toBeCloseTo(badgeBox.width, 1);
+  }
+  const controls = page.locator('.nav-actions > *, .hero-cta .btn, .hero-chips .chip, .clone-copy, .release-toggle, .release-tag, .branch-sha, .pkg-tab, .term-open');
+  for (const control of await controls.all()) {
+    await expect(control).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+    await expect(control).toHaveCSS('background-image', 'none');
+    await expect(control).toHaveCSS('border-top-color', 'rgba(0, 0, 0, 0)');
+    await expect(control).toHaveCSS('border-top-left-radius', '10px');
+  }
+  const pause = page.locator('#motion-toggle');
+  await pause.hover();
+  await expect(pause).toHaveCSS('border-top-color', 'rgb(99, 221, 248)');
+  await expect(pause).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await page.mouse.move(0, 0);
+  await pause.focus();
+  await expect(pause).toHaveCSS('outline-style', 'solid');
+  await expect(pause).toHaveCSS('outline-width', '2px');
+  await expect(pause).toHaveCSS('border-top-color', 'rgba(0, 0, 0, 0)');
+  await page.locator('#issues-list .term-open').first().click();
+  const close = page.getByRole('button', { name: 'Close issue details' });
+  await expect(close).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await expect(close).toHaveCSS('border-top-left-radius', '10px');
+  await expect(close.locator('svg')).toHaveCSS('opacity', '1');
+  const box = await close.boundingBox();
+  expect(box.width).toBeGreaterThanOrEqual(24);
+  expect(box.height).toBeGreaterThanOrEqual(24);
+  await close.click();
+  await expect(page.locator('#item-modal')).toBeHidden();
+});
+
+test('keeps panel and titlebar fills at or below 65 percent without fading content', async ({ page }) => {
+  await load(page);
+  async function checkSurfaces() {
+    for (const surface of await page.locator('.panel:visible, .term-bar:visible, .tracker-tabs:visible, .item-fields:visible, .contrib-stat:visible').all()) {
+      const alpha = (await paintedColor(surface))[3] / 255;
+      expect(alpha).toBeGreaterThan(0);
+      expect(alpha).toBeLessThanOrEqual(0.65 + 1 / 255);
+      await expect(surface).toHaveCSS('opacity', '1');
+    }
+    for (const bar of await page.locator('.term-bar:visible').all()) {
+      const panel = (await paintedColor(bar.locator('..')))[3] / 255;
+      const title = (await paintedColor(bar))[3] / 255;
+      expect(title + panel * (1 - title)).toBeLessThanOrEqual(0.65 + 1 / 255);
+    }
+  }
+  await checkSurfaces();
+  await page.locator('#issues-list .term-open').first().click();
+  await checkSurfaces();
+  await page.keyboard.press('Escape');
+  await page.locator('.contrib-card').first().click();
+  await checkSurfaces();
+});
+
+test('uses an opaque dark neutral footer with readable text', async ({ page }) => {
+  await load(page);
+  await page.locator('.footer').scrollIntoViewIfNeeded();
+  const background = await paintedColor(page.locator('.footer'));
+  expect(background[3]).toBe(255);
+  expect(Math.max(...background.slice(0, 3))).toBeLessThanOrEqual(36);
+  expect(Math.max(...background.slice(0, 3)) - Math.min(...background.slice(0, 3))).toBeLessThanOrEqual(12);
+  const luminance = (rgb) => rgb.slice(0, 3).map((channel) => {
+    const value = channel / 255;
+    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  }).reduce((sum, value, index) => sum + value * [0.2126, 0.7152, 0.0722][index], 0);
+  for (const text of await page.locator('.footer-line, .footer-meta, .footer-legal, .footer a').all()) {
+    const foreground = await paintedColor(text, 'color');
+    expect((luminance(foreground) + 0.05) / (luminance(background) + 0.05)).toBeGreaterThanOrEqual(4.5);
+  }
 });
 
 test('serves generated minified assets rather than source aliases', async ({ page }) => {
@@ -104,11 +192,10 @@ test('keeps viewport-sized space behind the dashboard with an opaque footer', as
   const colors = await page.evaluate(() => ({
     heading: getComputedStyle(document.querySelector('#activity h2')).color,
     panelText: getComputedStyle(document.querySelector('#activity .panel')).color,
-    footer: getComputedStyle(document.querySelector('.footer')).backgroundColor,
   }));
   expect(colors.heading).toBe('rgb(221, 243, 248)');
   expect(colors.panelText).toBe('rgb(221, 243, 248)');
-  expect(colors.footer).toBe('rgb(27, 64, 80)');
+  expect((await paintedColor(page.locator('.footer')))[3]).toBe(255);
   await page.locator('.footer').scrollIntoViewIfNeeded();
   expect(await background.boundingBox()).toEqual(original);
 });

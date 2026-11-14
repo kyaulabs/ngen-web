@@ -12,6 +12,8 @@
       "readySelector": "body.loaded",
       "states": [
         { "id": "dark", "colorScheme": "dark", "actions": [] },
+        { "id": "control-hover-dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": "#motion-toggle" }] },
+        { "id": "control-focus-dark", "colorScheme": "dark", "actions": [{ "type": "focus", "selector": "#motion-toggle" }] },
         { "id": "offline-dark", "colorScheme": "dark", "actions": [] },
         { "id": "tracker-dark", "colorScheme": "dark", "actions": [{ "type": "click", "selector": "#issues-list .term-open" }] },
         { "id": "contributor-dark", "colorScheme": "dark", "actions": [{ "type": "click", "selector": ".contrib-card" }] },

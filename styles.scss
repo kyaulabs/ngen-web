@@ -1,4 +1,4 @@
-// $KYAULabs: styles.scss kyau@aura.kyaulabs 2026/11/13 -0800 Exp $
+// $KYAULabs: styles.scss kyau@aura.kyaulabs 2026/11/14 -0800 Exp $
 /* NGEN visual system, adapted from the KYAU Labs Prism dashboard (AGPL-3.0).
    Dark palette from the supplied brand pack; the website has no light mode. */
 :root {
@@ -31,9 +31,10 @@
   --space-shadow: var(--ngen-bg);
   --bg-0: var(--ngen-bg);
   --bg-1: var(--ngen-surface-alt);
-  --panel: color-mix(in srgb, var(--ngen-surface) 88%, transparent);
+  /* A 30% titlebar over a 50% panel composites to 65%, not 88%. */
+  --panel: color-mix(in srgb, var(--ngen-surface) 50%, transparent);
   --panel-solid: var(--ngen-surface);
-  --panel-2: color-mix(in srgb, var(--ngen-surface-alt) 85%, transparent);
+  --panel-2: color-mix(in srgb, var(--ngen-surface-alt) 30%, transparent);
   --line: var(--ngen-border);
   --line-strong: var(--ngen-control-border);
   --ink-0: var(--ngen-text);
@@ -46,9 +47,7 @@
   --accent-ink: var(--ngen-on-accent);
   --ok: var(--ngen-success);
   --warn: var(--ngen-warning);
-  --cta-yellow: var(--ngen-warning);
   --bad: var(--ngen-danger);
-  --glow: 0 0 34px color-mix(in srgb, var(--ngen-accent) 22%, transparent);
   --grid-line: color-mix(in srgb, var(--ngen-border) 18%, transparent);
   --shadow: 0 24px 60px color-mix(in srgb, var(--space-shadow) 55%, transparent);
   --scanline-op: 0.025;
@@ -98,7 +97,7 @@ a:hover { text-decoration: underline; }
 
 button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
 
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 
 main { position: relative; z-index: 1; }
 
@@ -195,71 +194,48 @@ img { max-width: 100%; display: block; }
 }
 
 .nav-actions { display: flex; align-items: center; gap: 12px; }
+.nav .nav-actions > * {
+  min-inline-size: 4.75rem;
+  block-size: calc(0.66rem * 1.55 + 1rem);
+  flex-shrink: 0;
+}
 
 /* ----------------------------------------------------------------------------
    05. BUTTONS, BADGES, CHIPS
    ------------------------------------------------------------------------- */
-.btn {
+/* One compact, transparent treatment for actions and the feed status.
+   A transparent border reserves space; only hover paints it. */
+button, .btn, .icon-btn, .badge, .chip, .pkg-cta, .branch-sha, .release-tag {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 12px 22px;
-  border-radius: 10px;
-  border: 1px solid var(--line-strong);
-  transition: transform var(--speed), box-shadow var(--speed),
-              background var(--speed), border-color var(--speed);
-  white-space: nowrap;
-}
-.btn:hover { text-decoration: none; transform: translateY(-2px); }
-.btn:active { transform: translateY(0); }
-
-.btn-primary {
-  background: linear-gradient(120deg, var(--accent), var(--accent-2));
-  color: var(--accent-ink);
-  border-color: transparent;
-  font-weight: 700;
-  box-shadow: var(--glow);
-}
-.btn-primary svg { width: 15px; height: 15px; }
-
-.btn-ghost { color: var(--ink-1); background: var(--panel); }
-.btn-ghost:hover { color: var(--accent); border-color: var(--accent); }
-.btn-ghost svg { width: 15px; height: 15px; }
-
-.ico-gh { width: 16px; height: 16px; }
-
-.icon-btn {
-  display: inline-grid;
-  place-items: center;
-  width: 38px; height: 38px;
-  border-radius: 10px;
-  border: 1px solid var(--line);
-  background: var(--panel);
-  color: var(--ink-1);
-  transition: color var(--speed), border-color var(--speed), transform var(--speed);
-}
-.icon-btn:hover { color: var(--accent); border-color: var(--accent); transform: translateY(-1px); }
-.icon-btn svg { width: 18px; height: 18px; }
-
-.badge {
-  display: inline-flex;
-  align-items: center;
+  justify-content: center;
   gap: 8px;
+  min-inline-size: 2rem;
+  min-block-size: calc(0.66rem * 1.55 + 1rem);
+  padding: 7px 12px;
   font-family: var(--font-mono);
   font-size: 0.66rem;
   font-weight: 700;
+  line-height: 1.55;
   letter-spacing: 0.18em;
-  padding: 7px 12px;
-  border-radius: 999px;
-  border: 1px solid var(--line-strong);
+  text-transform: uppercase;
+  white-space: nowrap;
   color: var(--ink-1);
-  user-select: none;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  box-shadow: none;
+  text-decoration: none;
+  transition: color var(--speed), border-color var(--speed);
 }
+:is(button, .btn, .icon-btn, .badge, .chip, .pkg-cta, .branch-sha, .release-tag):hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  text-decoration: none;
+}
+.btn svg, .icon-btn svg { width: 13px; height: 13px; }
+.badge { user-select: none; }
+.pkg-cta { align-self: flex-start; max-inline-size: 100%; white-space: normal; text-align: left; }
 
 .badge-dot {
   width: 7px; height: 7px;
@@ -275,33 +251,9 @@ img { max-width: 100%; display: block; }
   50% { opacity: 0.45; transform: scale(0.8); }
 }
 
-/* Hero statistic chips. */
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--font-mono);
-  font-size: 0.74rem;
-  color: var(--ink-1);
-  background: var(--panel);
-  border: 1px solid var(--line);
-  /* Rectangular with softened corners — the .btn silhouette, not a pill. */
-  border-radius: 10px;
-  padding: 8px 15px;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
+/* Hero statistic links use the same transparent control treatment. */
 .chip strong { color: var(--ink-0); font-weight: 700; }
 .chip svg { width: 13px; height: 13px; color: var(--accent); }
-
-/* Chips are links to their GitHub counterparts — the button hover language
-   (lift + accent border), never an underline. */
-a.chip { transition: border-color var(--speed), transform var(--speed); }
-a.chip:hover {
-  text-decoration: none;
-  border-color: var(--accent);
-  transform: translateY(-2px);
-}
 
 /* ----------------------------------------------------------------------------
    06. HERO + HUD FURNITURE
@@ -310,9 +262,6 @@ a.chip:hover {
 .hero, .nav.over-hero {
   --bg-0: var(--space-bg);
   --bg-1: #14313D;
-  --panel: rgba(20, 49, 61, 0.85);
-  --panel-solid: #14313D;
-  --panel-2: rgba(27, 64, 80, 0.65);
   --ink-0: var(--space-star);
   --ink-1: var(--space-muted);
   --ink-2: var(--space-muted);
@@ -322,7 +271,6 @@ a.chip:hover {
   --accent-dim: rgba(99, 221, 248, 0.08);
   --line: #315362;
   --line-strong: #7899A6;
-  --glow: 0 0 34px rgba(99, 221, 248, 0.16);
 }
 .hero {
   background: transparent;
@@ -782,7 +730,9 @@ body.ticker-docked .footer { padding-bottom: calc(34px + var(--ticker-h)); }
   min-width: 140px;
   max-width: 260px;
   padding: 10px 13px;
-  background: var(--panel-solid);
+  background: var(--panel);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--line-strong);
   border-left: 2px solid var(--accent);
   border-radius: 8px;
@@ -839,19 +789,7 @@ a.pkg-name:hover { color: var(--accent); text-decoration: none; }
   padding: 6px 8px 6px 10px;
 }
 .pkg-installs .clone-line code { color: var(--accent); }
-.pkg-installs .icon-btn { width: 26px; height: 26px; border-radius: 6px; flex: 0 0 auto; margin-left: auto; }
-.pkg-installs .icon-btn svg { width: 13px; height: 13px; }
-
-/* Repository and contributor actions. */
-.pkg-cta {
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--cta-yellow);
-  opacity: 0.9;
-  transition: color var(--speed), filter var(--speed), opacity var(--speed);
-}
+.pkg-installs .icon-btn { flex: 0 0 auto; margin-left: auto; }
 .core-install { padding: 0; margin-bottom: 18px; }
 .core-install-body {
   padding: 18px 22px 20px;
@@ -891,7 +829,6 @@ a.pkg-name:hover { color: var(--accent); text-decoration: none; }
   display: flex;
   flex-direction: column;
   padding: 0;
-  background: var(--panel-solid);
   transform: translateY(16px) scale(0.985);
   transition: transform var(--speed) ease;
 }
@@ -904,22 +841,8 @@ body.pkg-modal-open { overflow: hidden; }
 .pkg-modal-bar { flex: 0 0 auto; }
 .pkg-modal-bar .term-title { flex: 1 1 auto; }
 
-/* The red traffic-light dot IS the close control (macOS style): a plain
-   circle at rest, an X fades in on hover/focus. No separate header button.
-   The button keeps the .term-dot sizing/color (first-child = red --bad). */
-.term-dot-close { position: relative; flex: 0 0 auto; cursor: pointer; }
-.term-dot-close svg {
-  position: absolute;
-  inset: 0;
-  margin: auto;
-  width: 7px;
-  height: 7px;
-  color: rgba(0, 0, 0, 0.62);
-  opacity: 0;
-  transition: opacity var(--speed);
-}
-.term-dot-close:hover svg,
-.term-dot-close:focus-visible svg { opacity: 1; }
+/* Dialog close actions share the template; the X is always visible. */
+.term-dot-close { flex: 0 0 auto; }
 
 .pkg-modal-body {
   padding: 22px 26px 26px;
@@ -970,21 +893,11 @@ body.pkg-modal-open { overflow: hidden; }
   gap: 2px;
   border-bottom: 1px solid var(--line);
 }
-.pkg-tab {
-  font-family: var(--font-mono);
-  font-size: 0.64rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  padding: 8px 12px 7px;
-  color: var(--ink-2);
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  transition: color var(--speed), border-color var(--speed);
+.pkg-tab.active {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 0.35em;
 }
-.pkg-tab:hover { color: var(--ink-0); }
-.pkg-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
 .pkg-tabpanel { display: none; padding-top: 14px; }
 .pkg-tabpanel.active { display: block; }
@@ -1247,17 +1160,7 @@ body.pkg-modal-open { overflow: hidden; }
 .tag-default { color: var(--accent); border-color: var(--accent); background: var(--accent-dim); }
 .tag-protected { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 55%, transparent); }
 
-.branch-sha {
-  display: inline-block;
-  margin-top: 14px;
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  color: var(--accent);
-  background: var(--accent-dim);
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
-  padding: 4px 10px;
-  border-radius: 7px;
-}
+.branch-sha { margin-top: 14px; }
 
 .branch-meta {
   margin-top: 12px;
@@ -1303,32 +1206,7 @@ body.pkg-modal-open { overflow: hidden; }
   cursor: pointer;
 }
 
-.release-toggle {
-  display: grid;
-  place-items: center;
-  width: 30px; height: 30px;
-  flex: 0 0 auto;
-  border-radius: 8px;
-  border: 1px solid var(--line);
-  color: var(--ink-2);
-  transition: color var(--speed), border-color var(--speed);
-}
-.release-toggle:hover { color: var(--accent); border-color: var(--accent); }
-.release-card.expanded .release-toggle {
-  color: var(--accent);
-  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
-}
-
-.release-tag {
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--accent-ink);
-  background: linear-gradient(120deg, var(--accent), var(--accent-2));
-  padding: 4px 12px;
-  border-radius: 7px;
-}
-.release-tag:hover { text-decoration: none; filter: brightness(1.08); }
+.release-toggle { flex: 0 0 auto; }
 
 .release-title { font-size: 1rem; font-weight: 600; }
 
@@ -1556,10 +1434,8 @@ body.pkg-modal-open { overflow: hidden; }
   width: 100%;
   padding: 13px 18px;
   text-align: left;
-  color: var(--ink-1);
-  transition: background var(--speed);
+  white-space: normal;
 }
-.term-row .term-open:hover { background: var(--accent-dim); }
 
 .st { position: relative; width: 15px; height: 15px; margin-top: 2px; }
 .st-open {
@@ -1649,13 +1525,12 @@ body.pkg-modal-open { overflow: hidden; }
   display: flex;
   flex-direction: column;
   gap: 14px;
-  /* Cards open the operator-profile popup — same affordance language as
-     the module cards (pointer + amber .pkg-cta hint at the bottom). */
+  /* Cards open the operator-profile popup; the action hint uses the
+     shared compact control treatment. */
   cursor: pointer;
   transition: border-color var(--speed);
 }
 .contrib-card:hover { border-color: var(--line-strong); }
-.contrib-card .pkg-cta { align-self: flex-start; }
 
 .contrib-top { display: flex; align-items: center; gap: 14px; }
 
@@ -1727,7 +1602,8 @@ body.pkg-modal-open { overflow: hidden; }
   z-index: 1;
   margin-top: clamp(70px, 10vw, 120px);
   border-top: 1px solid var(--line);
-  background: var(--bg-1);
+  /* Charcoal from the darker brand background, with only a faint cyan hue. */
+  background: hsl(from var(--bg-0) h 8% l);
   padding: 48px clamp(20px, 4vw, 48px) 34px;
 }
 
@@ -1902,7 +1778,6 @@ body.pkg-modal-open { overflow: hidden; }
   background: var(--ngen-surface); color: var(--ngen-text); padding: 12px 20px;
 }
 .skip-link:focus { top: 12px; }
-.icon-btn { min-width: 44px; min-height: 44px; }
 .game-empty { padding: 28px; margin-top: 24px; }
 .game-empty h3 { margin: 14px 0 8px; }
 .game-empty p { color: var(--ink-1); }

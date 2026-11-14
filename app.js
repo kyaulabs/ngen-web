@@ -1,4 +1,4 @@
-// $KYAULabs: app.js kyau@aura.kyaulabs 2026/11/13 -0800 Exp $
+// $KYAULabs: app.js kyau@aura.kyaulabs 2026/11/14 -0800 Exp $
 /* NGEN telemetry dashboard. Adapted from the KYAU Labs Prism dashboard (AGPL-3.0).
    Public GitHub data is untrusted; escape text and sanitize markdown links.
    Snapshot: data/snapshot.json. Missing record feeds remain empty. */
@@ -1980,7 +1980,7 @@ const ItemModal = {
 
     this.box.innerHTML = `
       <div class="term-bar pkg-modal-bar">
-        <button class="term-dot term-dot-close" type="button" aria-label="Close ${isPr ? 'pull request' : 'issue'} details">
+        <button class="icon-btn term-dot-close" type="button" aria-label="Close ${isPr ? 'pull request' : 'issue'} details">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
         </button><span class="term-dot"></span><span class="term-dot"></span>
         <span class="term-title">${isPr ? 'pr' : 'issue'}://${CONFIG.owner}/${CONFIG.repo}#${row.number}</span>
@@ -1998,7 +1998,7 @@ const ItemModal = {
             </div>`).join('')}
         </div>
         <div class="item-actions">
-          <a class="btn btn-ghost" href="${Utils.esc(row.url)}" target="_blank" rel="noopener">
+          <a class="btn" href="${Utils.esc(row.url)}" target="_blank" rel="noopener">
             View on GitHub
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </a>
@@ -2155,7 +2155,7 @@ const ContribModal = {
 
     this.box.innerHTML = `
       <div class="term-bar pkg-modal-bar">
-        <button class="term-dot term-dot-close" type="button" aria-label="Close contributor profile">
+        <button class="icon-btn term-dot-close" type="button" aria-label="Close contributor profile">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
         </button><span class="term-dot"></span><span class="term-dot"></span>
         <span class="term-title">operator://${Utils.esc(login)}</span>
@@ -2184,11 +2184,11 @@ const ContribModal = {
         <div class="contrib-commits" data-fill="commits"><p class="contrib-loading">// syncing commit history…</p></div>
         <div data-fill="profile"></div>
         <div class="item-actions">
-          <a class="btn btn-ghost" href="${Utils.esc(c.html_url)}" target="_blank" rel="noopener">
+          <a class="btn" href="${Utils.esc(c.html_url)}" target="_blank" rel="noopener">
             View on GitHub
             ${arrow}
           </a>
-          <a class="btn btn-ghost" href="https://github.com/${CONFIG.owner}/${CONFIG.repo}/commits?author=${encodeURIComponent(login)}" target="_blank" rel="noopener">
+          <a class="btn" href="https://github.com/${CONFIG.owner}/${CONFIG.repo}/commits?author=${encodeURIComponent(login)}" target="_blank" rel="noopener">
             Commits by @${Utils.esc(login)}
             ${arrow}
           </a>
