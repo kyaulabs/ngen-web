@@ -1,4 +1,5 @@
-// $KYAULabs: dashboard.spec.mjs kyau@aura.kyaulabs 2026/11/12 -0800 Exp $
+// $KYAULabs: dashboard.spec.mjs kyau@aura.kyaulabs 2026/11/13 -0800 Exp $
+import { readFile } from 'node:fs/promises';
 import { test, expect } from '@playwright/test';
 import { controlNetwork } from '../network.mjs';
 
@@ -25,6 +26,24 @@ test('preserves the dashboard with NGEN identity, live charts and an honest game
   await expect(page.locator('#games')).toContainText('No games announced yet');
   await expect(page.locator('a[href*="github.com/kyaulabs/prism"]')).toHaveCount(1); // attribution only
   expect(errors).toEqual([]);
+});
+
+test('serves generated minified assets rather than source aliases', async ({ page }) => {
+  await load(page);
+  const assets = await page.locator('script[src], link[rel="stylesheet"]').evaluateAll((nodes) => nodes.map((node) => node.getAttribute('src') || node.getAttribute('href')));
+  for (const file of assets) {
+    expect(file).toMatch(/\.min\.(?:js|css)$/);
+    const response = await page.request.get(`/${file}`);
+    expect(response.status()).toBe(200);
+    expect(response.headers()['content-type']).toMatch(file.endsWith('.css') ? /text\/css/ : /(?:application|text)\/javascript/);
+    expect(await response.body()).toEqual(await readFile(file));
+  }
+});
+
+test('does not expose source styles, scripts, or development files', async ({ page }) => {
+  for (const path of ['/styles.scss', '/styles.css', '/brand/web/ngen-theme.css', '/app.js', '/package.json', '/tests/server.mjs', '/.git/HEAD']) {
+    expect((await page.request.get(path)).status(), path).toBe(404);
+  }
 });
 
 test('copies the source command and persists theme selection', async ({ page, context }) => {

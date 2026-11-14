@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.\
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines
 and [Semantic Versioning](https://semver.org/spec/v2.0.0.html) for versioning adherance.
 
+## [💾](https://github.com/kyaulabs/ngen-web/releases/tag/v0.1.1) [0.1.1](https://github.com/kyaulabs/ngen-web/compare/v0.1.0...v0.1.1) - (2026-11-14)
+
+### 📝 Documentation
+- Add nginx static hosting instructions ([500e90b](https://github.com/kyaulabs/ngen-web/commit/500e90ba57f8dc720c3d58bbe5b44e353af51bba))
+- Document nginx static deployment (#4) ([9604546](https://github.com/kyaulabs/ngen-web/commit/9604546dba83ca96b835d3c428b86ed5eb79ab1d))
+- Serve nginx directly from git checkout ([27598fa](https://github.com/kyaulabs/ngen-web/commit/27598faa3d95543fd1a68a2bd4047ae25f9da5db))
+- Serve the git checkout directly with nginx (#6) ([b68a29e](https://github.com/kyaulabs/ngen-web/commit/b68a29eab03dc0696dc5c3a5d84492c4918909f1))
+
+
+### 🔮 Misc
+
+- [Build] Minify deployment assets with uglifyjs and sass ([6868242](https://github.com/kyaulabs/ngen-web/commit/68682427944a8f8464df17d55281abf704b47922))
+- [Build] Minify deployment assets with uglifyjs and sass (#8) ([5fbbd80](https://github.com/kyaulabs/ngen-web/commit/5fbbd805205115ffc0edaeb791f2ded36716dfe6))
+<!-- Auto-generated on 2026-11-13T17:23:14.833223126-08:00 -->
 ## [💾](https://github.com/kyaulabs/ngen-web/releases/tag/v0.1.0) [0.1.0](https://github.com/kyaulabs/ngen-web/commit/ba18bf9c5cc44e6ba4d552e6bc95f3a5e311ddc6) - (2026-11-13)
 
 ### 🚀 Features
