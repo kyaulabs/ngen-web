@@ -5,11 +5,27 @@
 const Space = (() => {
   let timer = null, media = null, tracks = null, system = null;
   let time = 0, backgroundMotion = [];
+  // Approximate blackbody sRGB tints, not the nebula or brand palette.
+  const stellarSpectrum = {
+    3000: '#ffb86d', 4000: '#ffd3a5', 5000: '#ffe6d0', 6000: '#fff3f1',
+    8000: '#e3e7ff', 12000: '#c0d1ff', 20000: '#abc1ff',
+  };
   const orbits = [
-    { rx: 211, ry: 102, tilt: -32, phase: 0.5, speed: 0.00026, spin: 0.002, radius: 7, color: 'cyan' },
-    { rx: 192, ry: 89, tilt: 31, phase: 3.5, speed: -0.00019, spin: -0.0015, radius: 6, color: 'violet' },
-    { rx: 165, ry: 165, tilt: 0, phase: 5, speed: 0.00014, spin: 0.001, radius: 5, color: 'cyan' },
+    { rx: 211, ry: 102, tilt: -32, phase: 0.5, speed: 0.00026, spin: 0.002, radius: 7, temperature: 12000 },
+    { rx: 192, ry: 89, tilt: 31, phase: 3.5, speed: -0.00019, spin: -0.0015, radius: 6, temperature: 4000 },
+    { rx: 165, ry: 165, tilt: 0, phase: 5, speed: 0.00014, spin: 0.001, radius: 5, temperature: 6000 },
   ];
+
+  function stellarGlow(defs, prefix) {
+    for (const [temperature, color] of Object.entries(stellarSpectrum)) {
+      const gradient = defs.append('radialGradient').attr('id', `${prefix}-${temperature}`)
+        .attr('cx', '50%').attr('cy', '50%').attr('r', '50%');
+      gradient.append('stop').attr('offset', '0%').attr('stop-color', '#fff').attr('stop-opacity', 0.95);
+      gradient.append('stop').attr('offset', '25%').attr('stop-color', color).attr('stop-opacity', 0.8);
+      gradient.append('stop').attr('offset', '70%').attr('stop-color', color).attr('stop-opacity', 0.16);
+      gradient.append('stop').attr('offset', '100%').attr('stop-color', color).attr('stop-opacity', 0);
+    }
+  }
 
   function render(elapsed) {
     time = elapsed;
@@ -103,13 +119,32 @@ const Space = (() => {
     const stars = d3.select(background).append('div').attr('class', 'space-star-layer');
     const starField = stars.append('svg').attr('class', 'space-star-field')
       .attr('viewBox', '0 0 1600 1000').attr('preserveAspectRatio', 'xMidYMid slice').attr('aria-hidden', 'true');
-    const layers = starField.selectAll('g.star-layer').data(d3.range(3)).join('g').attr('class', 'star-layer');
-    layers.selectAll('circle').data(() => d3.range(300).map(() => ({
-      x: random() * 1660 - 30, y: random() * 1060 - 30,
-      radius: 0.3 + random() ** 3 * 1.8, opacity: 0.12 + random() * 0.76,
-    }))).join('circle').attr('class', 'space-star').attr('fill', 'var(--space-star)')
+    const starRandom = d3.randomLcg(0.731); // independent of the approved nebula
+    const temperature = d3.scaleThreshold().domain([0.05, 0.18, 0.4, 0.68, 0.86, 0.97]).range(Object.keys(stellarSpectrum));
+    stellarGlow(starField.append('defs'), 'space-star-glow');
+    // Apparent magnitude is logarithmic in received flux. Compress the exposure
+    // for a display; radii are point-spread footprints, not stellar diameters.
+    const layers = starField.selectAll('g.star-layer').data(d3.range(3).map(() => d3.range(300).map(() => {
+      const magnitude = -1 + 8 * starRandom() ** 0.28;
+      const flux = 10 ** (-0.4 * (magnitude + 1));
+      return {
+        x: starRandom() * 1660 - 30, y: starRandom() * 1060 - 30,
+        radius: 0.18 + 4.2 * Math.sqrt(flux), opacity: 0.16 + 0.84 * flux ** 0.2,
+        temperature: temperature(starRandom()), magnitude,
+      };
+    }))).join('g').attr('class', 'star-layer');
+    layers.selectAll('.space-star-glow').data((points) => points.filter((star) => star.magnitude < 1.8))
+      .join('circle').attr('class', 'space-star-glow').attr('fill', (star) => `url(#space-star-glow-${star.temperature})`)
+      .attr('cx', (star) => star.x).attr('cy', (star) => star.y)
+      .attr('r', (star) => star.radius * 5.5).attr('opacity', (star) => star.opacity);
+    layers.selectAll('.space-star').data((points) => points).join('circle').attr('class', 'space-star')
+      .attr('fill', (star) => stellarSpectrum[star.temperature])
       .attr('cx', (star) => star.x).attr('cy', (star) => star.y)
       .attr('r', (star) => star.radius).attr('opacity', (star) => star.opacity);
+    layers.selectAll('.space-star-highlight').data((points) => points.filter((star) => star.magnitude < 1.8))
+      .join('circle').attr('class', 'space-star-highlight').attr('fill', '#fff')
+      .attr('cx', (star) => star.x).attr('cy', (star) => star.y)
+      .attr('r', (star) => star.radius * 0.35).attr('opacity', (star) => star.opacity);
 
     // Let the browser move HTML layers independently of the orbital JS timer.
     if (background.animate) {
@@ -129,14 +164,7 @@ const Space = (() => {
     const scene = d3.select(system).append('svg').attr('class', 'orbit-scene')
       .attr('viewBox', '-240 -240 480 480').attr('aria-hidden', 'true');
     const defs = scene.append('defs');
-    for (const color of ['cyan', 'violet']) {
-      const corona = defs.append('radialGradient').attr('id', `space-corona-${color}`)
-        .attr('cx', '50%').attr('cy', '50%').attr('r', '50%');
-      corona.append('stop').attr('offset', '0%').attr('stop-color', 'var(--space-star)').attr('stop-opacity', 0.95);
-      corona.append('stop').attr('offset', '25%').attr('stop-color', `var(--space-${color})`).attr('stop-opacity', 0.8);
-      corona.append('stop').attr('offset', '70%').attr('stop-color', `var(--space-${color})`).attr('stop-opacity', 0.16);
-      corona.append('stop').attr('offset', '100%').attr('stop-color', `var(--space-${color})`).attr('stop-opacity', 0);
-    }
+    stellarGlow(defs, 'space-corona');
     scene.append('path').attr('d', 'M-223 0H223M0-219V219').attr('class', 'orbit-reference');
     tracks = scene.selectAll('g.orbit-track').data(orbits).join('g').attr('class', 'orbit-track');
     tracks.append('ellipse').attr('rx', (orbit) => orbit.rx).attr('ry', (orbit) => orbit.ry)
@@ -144,9 +172,9 @@ const Space = (() => {
     // White-hot points and broad, fading coronas emit light rather than
     // shading a dark hemisphere like a reflective planet or metal sphere.
     tracks.append('circle').attr('class', 'orbital-corona').attr('r', (orbit) => orbit.radius * 2.8)
-      .attr('fill', (orbit) => `url(#space-corona-${orbit.color})`);
+      .attr('fill', (orbit) => `url(#space-corona-${orbit.temperature})`);
     tracks.append('circle').attr('class', 'orbital-globe').attr('r', (orbit) => orbit.radius * 0.5)
-      .attr('fill', 'var(--space-star)');
+      .attr('fill', (orbit) => d3.interpolateRgb(stellarSpectrum[orbit.temperature], '#fff')(0.8));
     system.classList.add('space-ready');
     render(0);
     media = window.matchMedia('(prefers-reduced-motion: reduce)');

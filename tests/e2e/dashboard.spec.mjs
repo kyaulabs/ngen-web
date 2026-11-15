@@ -342,6 +342,19 @@ test('renders orbiters as bright stellar cores with larger centered fading coron
   }
 });
 
+test('uses warm, neutral and blue-white temperatures for the orbiting stellar halos', async ({ page }) => {
+  await load(page);
+  const colors = [];
+  for (const halo of await page.locator('.orbital-corona').all()) {
+    const id = (await halo.getAttribute('fill')).slice(5, -1);
+    colors.push((await paintedColor(page.locator(`[id="${id}"] stop`).nth(1), 'stopColor')).slice(0, 3));
+  }
+  expect(colors.some(([r, _g, b]) => r > b + 40)).toBe(true);
+  expect(colors.some((rgb) => Math.max(...rgb) - Math.min(...rgb) < 20)).toBe(true);
+  expect(colors.some(([r, _g, b]) => b > r + 20)).toBe(true);
+  expect(colors.every(([r, g, b]) => (r >= g && g >= b) || (r <= g && g <= b))).toBe(true);
+});
+
 test('simulates stars and circling globes with D3, honoring reduced motion and pause', async ({ page }) => {
   await load(page);
   expect(await page.locator('.space-star').count()).toBeGreaterThan(500);
