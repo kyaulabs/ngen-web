@@ -29,13 +29,12 @@
   --space-muted: var(--ngen-muted);
   --space-cyan: var(--ngen-accent);
   --space-violet: var(--ngen-secondary);
-  --space-shadow: var(--ngen-bg);
   --bg-0: var(--ngen-bg);
   --bg-1: var(--ngen-surface-alt);
-  /* A 30% titlebar over a 50% panel composites to 65%, not 88%. */
-  --panel: color-mix(in srgb, var(--ngen-surface) 50%, transparent);
+  /* The stronger Prism reference supersedes the earlier 65% fill cap. */
+  --panel: color-mix(in srgb, var(--ngen-surface) 88%, transparent);
   --panel-solid: var(--ngen-surface);
-  --panel-2: color-mix(in srgb, var(--ngen-panel-header) 30%, transparent);
+  --panel-2: color-mix(in srgb, var(--ngen-panel-header) 85%, transparent);
   --line: var(--ngen-border);
   --line-strong: var(--ngen-control-border);
   --ink-0: var(--ngen-text);
@@ -50,7 +49,7 @@
   --warn: var(--ngen-warning);
   --bad: var(--ngen-danger);
   --grid-line: color-mix(in srgb, var(--ngen-border) 18%, transparent);
-  --shadow: 0 24px 60px color-mix(in srgb, var(--space-shadow) 55%, transparent);
+  --shadow: 0 24px 60px rgba(0, 0, 0, 0.48);
   --scanline-op: 0.025;
   --glass-blur: 16px;
   --heat-0: color-mix(in srgb, var(--ngen-muted) 10%, transparent);
@@ -72,6 +71,7 @@
 html {
   scroll-behavior: smooth;
   scroll-padding-top: calc(var(--nav-h) + 18px);
+  scroll-padding-bottom: calc(var(--ticker-h) + 18px);
 }
 
 body {
@@ -197,15 +197,19 @@ img { max-width: 100%; display: block; }
 .nav-actions { display: flex; align-items: center; gap: 12px; }
 .nav .nav-actions > * {
   min-inline-size: 4.75rem;
+  min-block-size: calc(0.66rem * 1.55 + 1rem);
   block-size: calc(0.66rem * 1.55 + 1rem);
+  padding: 7px 12px;
+  font-size: 0.66rem;
+  letter-spacing: 0.18em;
   flex-shrink: 0;
 }
 
 /* ----------------------------------------------------------------------------
    05. BUTTONS, BADGES, CHIPS
    ------------------------------------------------------------------------- */
-/* One compact, transparent treatment for actions and the feed status.
-   A transparent border reserves space; only hover paints it. */
+/* Prism-like filled controls retain NGEN's palette, corners and focus cues.
+   Content actions are larger; header controls keep their compact footprint. */
 button, .btn, .icon-btn, .badge, .chip, .pkg-cta, .branch-sha, .release-tag {
   display: inline-flex;
   align-items: center;
@@ -222,8 +226,8 @@ button, .btn, .icon-btn, .badge, .chip, .pkg-cta, .branch-sha, .release-tag {
   text-transform: uppercase;
   white-space: nowrap;
   color: var(--ink-1);
-  background: transparent;
-  border: 1px solid transparent;
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
   border-radius: 10px;
   box-shadow: none;
   text-decoration: none;
@@ -231,9 +235,18 @@ button, .btn, .icon-btn, .badge, .chip, .pkg-cta, .branch-sha, .release-tag {
 }
 :is(button, .btn, .icon-btn, .badge, .chip, .pkg-cta, .branch-sha, .release-tag):hover {
   color: var(--accent);
+  background: var(--panel-2);
   border-color: var(--accent);
   text-decoration: none;
 }
+.btn { min-block-size: 2.75rem; padding: 12px 22px; font-size: 0.8rem; letter-spacing: 0.08em; }
+.btn-primary, .btn-primary:hover {
+  background: linear-gradient(120deg, var(--accent), var(--accent-2));
+  color: var(--accent-ink);
+  border-color: transparent;
+  box-shadow: 0 8px 32px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.icon-btn { min-inline-size: 2.75rem; min-block-size: 2.75rem; }
 .btn svg, .icon-btn svg { width: 13px; height: 13px; }
 .badge { user-select: none; }
 .pkg-cta { align-self: flex-start; max-inline-size: 100%; white-space: normal; text-align: left; }
@@ -252,7 +265,8 @@ button, .btn, .icon-btn, .badge, .chip, .pkg-cta, .branch-sha, .release-tag {
   50% { opacity: 0.45; transform: scale(0.8); }
 }
 
-/* Hero statistic links use the same transparent control treatment. */
+/* Filled statistic chips recover the reference's readable counters. */
+.chip { padding: 8px 15px; font-size: 0.74rem; font-weight: 400; letter-spacing: 0.02em; text-transform: none; }
 .chip strong { color: var(--ink-0); font-weight: 700; }
 .chip svg { width: 13px; height: 13px; color: var(--accent); }
 
@@ -573,11 +587,11 @@ body.ticker-docked .footer { padding-bottom: calc(34px + var(--ticker-h)); }
 .panel {
   position: relative;
   background: var(--panel);
-  border: 1px solid var(--line);
+  border: 1px solid color-mix(in srgb, var(--line-strong) 65%, var(--line));
   border-radius: var(--radius);
   backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow), inset 0 1px 0 color-mix(in srgb, var(--ink-0) 7%, transparent);
   overflow: hidden;
   transition: border-color var(--speed), transform var(--speed), background var(--speed) ease;
 }
@@ -1747,6 +1761,14 @@ body.pkg-modal-open { overflow: hidden; }
 .space-cloud-layer, .space-star-layer, .space-field, .space-star-field {
   position: absolute; inset: 0; display: block; width: 100%; height: 100%;
 }
+/* Illustration-only hues expand the brand cyan/violet into the user's
+   requested nebula spectrum; UI and logo tokens stay unchanged. */
+.space-cloud-layer {
+  --space-blue: hsl(from var(--ngen-accent) 220 s calc(l - 8));
+  --space-purple: hsl(from var(--ngen-secondary) 275 s calc(l - 20));
+  --space-magenta: hsl(from var(--ngen-secondary) 300 s calc(l - 22));
+  --space-pink: hsl(from var(--ngen-secondary) 330 s calc(l - 14));
+}
 .space-cloud-layer, .space-star-layer {
   transform-origin: center;
   will-change: transform;
@@ -1759,7 +1781,7 @@ body.pkg-modal-open { overflow: hidden; }
 .orbit-path { opacity: 0.7; }
 .orbit-path-dashed { stroke-dasharray: 2 6; }
 .orbit-reference { stroke: var(--line); stroke-dasharray: 4 6; }
-.orbital-globe { stroke: var(--space-cyan); stroke-width: 0.45; }
+.orbital-globe, .orbital-corona { stroke: none; }
 .orbital-core {
   display: none; position: absolute; inset: 0; z-index: 1;
   width: 100%; height: 100%;
