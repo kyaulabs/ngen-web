@@ -12,6 +12,7 @@
       "readySelector": "body.loaded",
       "states": [
         { "id": "dark", "colorScheme": "dark", "actions": [] },
+        { "id": "primary-hover-dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": ".hero-cta .btn-primary" }] },
         { "id": "control-hover-dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": "#motion-toggle" }] },
         { "id": "control-focus-dark", "colorScheme": "dark", "actions": [{ "type": "focus", "selector": "#motion-toggle" }] },
         { "id": "offline-dark", "colorScheme": "dark", "actions": [] },

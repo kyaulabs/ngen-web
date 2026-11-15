@@ -22,6 +22,15 @@ async function paintedColor(locator, property = 'backgroundColor') {
   }, property);
 }
 
+function contrastRatio(first, second) {
+  const luminance = (rgb) => rgb.slice(0, 3).map((channel) => {
+    const value = channel / 255;
+    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  }).reduce((sum, value, index) => sum + value * [0.2126, 0.7152, 0.0722][index], 0);
+  const values = [luminance(first), luminance(second)].sort((a, b) => a - b);
+  return (values[1] + 0.05) / (values[0] + 0.05);
+}
+
 test('preserves the dashboard with NGEN identity, live charts and an honest game directory', async ({ page }) => {
   const errors = []; page.on('pageerror', (error) => errors.push(error.message));
   await load(page);
@@ -50,8 +59,8 @@ test('uses the Graphite 1.2 page, panel and Slate header colors in dark mode', a
   for (const [selector, expected] of [
     ['body', [32, 33, 36, 255]],
     ['.space-background', [32, 33, 36, 255]],
-    ['#install', [42, 43, 47, 128]],
-    ['#install .term-bar', [58, 65, 78, 77]],
+    ['#install', [42, 43, 47, 224]],
+    ['#install .term-bar', [58, 65, 78, 217]],
   ]) {
     const color = await paintedColor(page.locator(selector));
     for (let channel = 0; channel < 4; channel++) expect(Math.abs(color[channel] - expected[channel]), selector).toBeLessThanOrEqual(2);
@@ -81,7 +90,7 @@ test('keeps the orbital fallback label-free and transparent without JavaScript',
   }
 });
 
-test('shares compact transparent controls with hover borders and visible keyboard focus', async ({ page }) => {
+test('uses pronounced filled controls and a primary action without losing keyboard focus', async ({ page }) => {
   await load(page);
   const live = page.locator('#feed-badge');
   const badgeBox = await live.boundingBox();
@@ -90,25 +99,34 @@ test('shares compact transparent controls with hover borders and visible keyboar
     expect(box.height).toBeCloseTo(badgeBox.height, 1);
     expect(box.width).toBeCloseTo(badgeBox.width, 1);
   }
-  const controls = page.locator('.nav-actions > *, .hero-cta .btn, .hero-chips .chip, .clone-copy, .release-toggle, .release-tag, .branch-sha, .pkg-tab, .term-open');
+  const controls = page.locator('.nav-actions > *, .hero-cta .btn:not(.btn-primary), .hero-chips .chip, .clone-copy, .release-toggle, .release-tag, .branch-sha, .pkg-tab, .term-open');
   for (const control of await controls.all()) {
-    await expect(control).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
-    await expect(control).toHaveCSS('background-image', 'none');
-    await expect(control).toHaveCSS('border-top-color', 'rgba(0, 0, 0, 0)');
+    expect((await paintedColor(control))[3]).toBeGreaterThan(25);
+    await expect(control).not.toHaveCSS('border-top-color', 'rgba(0, 0, 0, 0)');
     await expect(control).toHaveCSS('border-top-left-radius', '10px');
   }
+  const primary = page.locator('.hero-cta .btn-primary');
+  await expect(primary).toHaveCSS('background-image', /^linear-gradient/);
+  await expect(primary).toHaveCSS('color', 'rgb(8, 33, 43)');
+  expect((await primary.boundingBox()).height).toBeGreaterThanOrEqual(44);
+  await primary.hover();
+  await expect(page.locator('.ticker')).toHaveClass(/docked/);
+  await expect(page.locator('.ticker')).toHaveCSS('transform', 'none');
+  const actionBox = await primary.boundingBox();
+  const tickerBox = await page.locator('.ticker').boundingBox();
+  expect(actionBox.y + actionBox.height).toBeLessThanOrEqual(tickerBox.y);
   const pause = page.locator('#motion-toggle');
   await pause.hover();
   await expect(pause).toHaveCSS('border-top-color', 'rgb(99, 221, 248)');
-  await expect(pause).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  expect((await paintedColor(pause))[3]).toBeGreaterThan(25);
   await page.mouse.move(0, 0);
   await pause.focus();
   await expect(pause).toHaveCSS('outline-style', 'solid');
   await expect(pause).toHaveCSS('outline-width', '2px');
-  await expect(pause).toHaveCSS('border-top-color', 'rgba(0, 0, 0, 0)');
+  await expect(pause).toHaveCSS('border-top-color', 'rgb(120, 153, 166)');
   await page.locator('#issues-list .term-open').first().click();
   const close = page.getByRole('button', { name: 'Close issue details' });
-  await expect(close).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  expect((await paintedColor(close))[3]).toBeGreaterThan(25);
   await expect(close).toHaveCSS('border-top-left-radius', '10px');
   await expect(close.locator('svg')).toHaveCSS('opacity', '1');
   const box = await close.boundingBox();
@@ -118,19 +136,17 @@ test('shares compact transparent controls with hover borders and visible keyboar
   await expect(page.locator('#item-modal')).toBeHidden();
 });
 
-test('keeps panel and titlebar fills at or below 65 percent without fading content', async ({ page }) => {
+test('separates solid Graphite panels and Slate titlebars with readable boundaries', async ({ page }) => {
   await load(page);
   async function checkSurfaces() {
     for (const surface of await page.locator('.panel:visible, .term-bar:visible, .tracker-tabs:visible, .item-fields:visible, .contrib-stat:visible').all()) {
       const alpha = (await paintedColor(surface))[3] / 255;
-      expect(alpha).toBeGreaterThan(0);
-      expect(alpha).toBeLessThanOrEqual(0.65 + 1 / 255);
+      expect(alpha).toBeGreaterThanOrEqual(0.85 - 1 / 255);
       await expect(surface).toHaveCSS('opacity', '1');
     }
-    for (const bar of await page.locator('.term-bar:visible').all()) {
-      const panel = (await paintedColor(bar.locator('..')))[3] / 255;
-      const title = (await paintedColor(bar))[3] / 255;
-      expect(title + panel * (1 - title)).toBeLessThanOrEqual(0.65 + 1 / 255);
+    for (const panel of await page.locator('.panel:visible').all()) {
+      const border = await paintedColor(panel, 'borderTopColor');
+      expect(contrastRatio(border, [42, 43, 47])).toBeGreaterThanOrEqual(3);
     }
   }
   await checkSurfaces();
@@ -148,13 +164,9 @@ test('uses an opaque dark neutral footer with readable text', async ({ page }) =
   expect(background[3]).toBe(255);
   expect(Math.max(...background.slice(0, 3))).toBeLessThanOrEqual(36);
   expect(Math.max(...background.slice(0, 3)) - Math.min(...background.slice(0, 3))).toBeLessThanOrEqual(12);
-  const luminance = (rgb) => rgb.slice(0, 3).map((channel) => {
-    const value = channel / 255;
-    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
-  }).reduce((sum, value, index) => sum + value * [0.2126, 0.7152, 0.0722][index], 0);
   for (const text of await page.locator('.footer-line, .footer-meta, .footer-legal, .footer a').all()) {
     const foreground = await paintedColor(text, 'color');
-    expect((luminance(foreground) + 0.05) / (luminance(background) + 0.05)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(foreground, background)).toBeGreaterThanOrEqual(4.5);
   }
 });
 
@@ -288,6 +300,69 @@ test('shows unavailable statistics and snapshot provenance when offline', async 
   await expect(page.locator('#releases-list .release-card')).toHaveCount(0);
   await expect(page.locator('#issues-list .term-open')).toHaveCount(0);
   await expect(page.locator('#prs-list')).toContainText('feed unavailable');
+});
+
+test('renders vivid blue, cyan, purple, magenta and pink nebula light', async ({ page }) => {
+  await load(page);
+  await expect(page.locator('.space-nebula-light')).toBeVisible();
+  const stops = page.locator('.space-field linearGradient stop');
+  expect(await stops.count()).toBeGreaterThanOrEqual(5);
+  const hues = [];
+  for (const stop of await stops.all()) {
+    const rgb = (await paintedColor(stop, 'stopColor')).slice(0, 3);
+    const max = Math.max(...rgb), min = Math.min(...rgb), delta = max - min;
+    expect(delta).toBeGreaterThanOrEqual(100);
+    const hue = max === rgb[0] ? (rgb[1] - rgb[2]) / delta : max === rgb[1] ? 2 + (rgb[2] - rgb[0]) / delta : 4 + (rgb[0] - rgb[1]) / delta;
+    hues.push((hue * 60 + 360) % 360);
+  }
+  for (const [low, high] of [[180, 210], [211, 245], [260, 290], [295, 315], [320, 345]]) {
+    expect(hues.some((hue) => hue >= low && hue <= high)).toBe(true);
+  }
+  const opacity = await page.locator('.space-nebula path').evaluateAll((paths) => Math.max(...paths.map((path) => Number(path.getAttribute('opacity')))));
+  expect(opacity).toBeGreaterThanOrEqual(0.1);
+});
+
+test('paints background star cores with warm, neutral and blue-white temperature colors', async ({ page }) => {
+  await load(page);
+  const colors = await page.locator('.space-star').evaluateAll((stars) => [...new Set(stars.map((star) => getComputedStyle(star).fill))]
+    .map((color) => color.match(/\d+/g).slice(0, 3).map(Number)));
+  expect(colors.length).toBeGreaterThanOrEqual(6);
+  expect(colors.some(([r, _g, b]) => r > b + 40)).toBe(true);
+  expect(colors.some((rgb) => Math.max(...rgb) - Math.min(...rgb) < 20)).toBe(true);
+  expect(colors.some(([r, _g, b]) => b > r + 20)).toBe(true);
+});
+
+test('renders orbiters as bright stellar cores with larger centered fading coronas', async ({ page }) => {
+  await load(page);
+  await expect(page.locator('.orbital-corona')).toHaveCount(3);
+  for (const track of await page.locator('.orbit-track').all()) {
+    const core = track.locator('.orbital-globe');
+    const corona = track.locator('.orbital-corona');
+    expect((await paintedColor(core, 'fill')).slice(0, 3).every((channel) => channel >= 220)).toBe(true);
+    await expect(core).toHaveCSS('stroke', 'none');
+    const small = await core.boundingBox(), large = await corona.boundingBox();
+    expect(large.width).toBeGreaterThan(small.width * 3);
+    expect(large.x + large.width / 2).toBeCloseTo(small.x + small.width / 2, 1);
+    expect(large.y + large.height / 2).toBeCloseTo(small.y + small.height / 2, 1);
+    const id = (await corona.getAttribute('fill')).slice(5, -1);
+    const gradient = page.locator(`[id="${id}"]`);
+    await expect(gradient).toHaveAttribute('cx', '50%');
+    await expect(gradient).toHaveAttribute('cy', '50%');
+    await expect(gradient.locator('stop').last()).toHaveAttribute('stop-opacity', '0');
+  }
+});
+
+test('uses warm, neutral and blue-white temperatures for the orbiting stellar halos', async ({ page }) => {
+  await load(page);
+  const colors = [];
+  for (const halo of await page.locator('.orbital-corona').all()) {
+    const id = (await halo.getAttribute('fill')).slice(5, -1);
+    colors.push((await paintedColor(page.locator(`[id="${id}"] stop`).nth(1), 'stopColor')).slice(0, 3));
+  }
+  expect(colors.some(([r, _g, b]) => r > b + 40)).toBe(true);
+  expect(colors.some((rgb) => Math.max(...rgb) - Math.min(...rgb) < 20)).toBe(true);
+  expect(colors.some(([r, _g, b]) => b > r + 20)).toBe(true);
+  expect(colors.every(([r, g, b]) => (r >= g && g >= b) || (r <= g && g <= b))).toBe(true);
 });
 
 test('simulates stars and circling globes with D3, honoring reduced motion and pause', async ({ page }) => {
