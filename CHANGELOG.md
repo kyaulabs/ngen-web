@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.\
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines
 and [Semantic Versioning](https://semver.org/spec/v2.0.0.html) for versioning adherance.
 
+## [💾](https://github.com/kyaulabs/ngen-web/releases/tag/v0.1.3) [0.1.3](https://github.com/kyaulabs/ngen-web/compare/v0.1.2...v0.1.3) - (2026-11-15)
+
+### 💄 Styling
+
+- [Brand] Adopt graphite 1.2 page and slate panel colors ([dca3bf2](https://github.com/kyaulabs/ngen-web/commit/dca3bf245bbb35f8e66c584b4ab4e960b21f264b))
+- [Ui] Unify compact controls and translucent panel surfaces ([88c098d](https://github.com/kyaulabs/ngen-web/commit/88c098d10311de60fc4a75f0b8f821c51d1e1aa7))
+- [Ui] Adopt graphite 1.2 and compact translucent controls (#15) ([29f9c7f](https://github.com/kyaulabs/ngen-web/commit/29f9c7fa4968d9d49248b1d1500e7063dd18be3c))
+<!-- Auto-generated on 2026-11-15T12:27:49.787829661-08:00 -->
 ## [💾](https://github.com/kyaulabs/ngen-web/releases/tag/v0.1.2) [0.1.2](https://github.com/kyaulabs/ngen-web/compare/v0.1.1...v0.1.2) - (2026-11-14)
 
 ### 🐛 Bug Fixes
