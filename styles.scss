@@ -1,11 +1,12 @@
-// $KYAULabs: styles.scss kyau@aura.kyaulabs 2026/11/14 -0800 Exp $
+// $KYAULabs: styles.scss kyau@aura.kyaulabs 2026/11/15 -0800 Exp $
 /* NGEN visual system, adapted from the KYAU Labs Prism dashboard (AGPL-3.0).
    Dark palette from the supplied brand pack; the website has no light mode. */
 :root {
   color-scheme: dark;
-  --ngen-bg: #0E222C;
-  --ngen-surface: #14313D;
-  --ngen-surface-alt: #1B4050;
+  --ngen-bg: #202124;
+  --ngen-surface: #2A2B2F;
+  --ngen-panel-header: #3A414E;
+  --ngen-surface-alt: var(--ngen-panel-header);
   --ngen-text: #DDF3F8;
   --ngen-muted: #A9C5D0;
   --ngen-border: #315362;
@@ -23,7 +24,7 @@
   --ngen-font-mono: ui-monospace, 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
   --font-display: var(--ngen-font-sans);
   --font-mono: var(--ngen-font-mono);
-  --space-bg: #020608;
+  --space-bg: var(--ngen-bg);
   --space-star: var(--ngen-text);
   --space-muted: var(--ngen-muted);
   --space-cyan: var(--ngen-accent);
@@ -34,7 +35,7 @@
   /* A 30% titlebar over a 50% panel composites to 65%, not 88%. */
   --panel: color-mix(in srgb, var(--ngen-surface) 50%, transparent);
   --panel-solid: var(--ngen-surface);
-  --panel-2: color-mix(in srgb, var(--ngen-surface-alt) 30%, transparent);
+  --panel-2: color-mix(in srgb, var(--ngen-panel-header) 30%, transparent);
   --line: var(--ngen-border);
   --line-strong: var(--ngen-control-border);
   --ink-0: var(--ngen-text);
@@ -261,7 +262,6 @@ button, .btn, .icon-btn, .badge, .chip, .pkg-cta, .branch-sha, .release-tag {
 /* The hero and overlaid navigation use the deepest space treatment. */
 .hero, .nav.over-hero {
   --bg-0: var(--space-bg);
-  --bg-1: #14313D;
   --ink-0: var(--space-star);
   --ink-1: var(--space-muted);
   --ink-2: var(--space-muted);
@@ -1602,8 +1602,8 @@ body.pkg-modal-open { overflow: hidden; }
   z-index: 1;
   margin-top: clamp(70px, 10vw, 120px);
   border-top: 1px solid var(--line);
-  /* Charcoal from the darker brand background, with only a faint cyan hue. */
-  background: hsl(from var(--bg-0) h 8% l);
+  /* The opaque Graphite page color ends the star field on a quiet surface. */
+  background: var(--bg-0);
   padding: 48px clamp(20px, 4vw, 48px) 34px;
 }
 

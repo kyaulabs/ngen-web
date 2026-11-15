@@ -1,4 +1,4 @@
-// $KYAULabs: dashboard.spec.mjs kyau@aura.kyaulabs 2026/11/14 -0800 Exp $
+// $KYAULabs: dashboard.spec.mjs kyau@aura.kyaulabs 2026/11/15 -0800 Exp $
 import { readFile } from 'node:fs/promises';
 import { test, expect } from '@playwright/test';
 import { controlNetwork } from '../network.mjs';
@@ -37,6 +37,48 @@ test('preserves the dashboard with NGEN identity, live charts and an honest game
   await expect(page.locator('#games')).toContainText('No games announced yet');
   await expect(page.locator('a[href*="github.com/kyaulabs/prism"]')).toHaveCount(1); // attribution only
   expect(errors).toEqual([]);
+});
+
+test('uses the Graphite 1.2 page, panel and Slate header colors in dark mode', async ({ page }) => {
+  await load(page);
+  const tokens = await page.locator('html').evaluate((element) => {
+    const style = getComputedStyle(element);
+    return ['bg', 'surface', 'panel-header', 'surface-alt'].map((key) => style.getPropertyValue(`--ngen-${key}`).trim().toUpperCase());
+  });
+  expect(tokens).toEqual(['#202124', '#2A2B2F', '#3A414E', '#3A414E']);
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#202124');
+  for (const [selector, expected] of [
+    ['body', [32, 33, 36, 255]],
+    ['.space-background', [32, 33, 36, 255]],
+    ['#install', [42, 43, 47, 128]],
+    ['#install .term-bar', [58, 65, 78, 77]],
+  ]) {
+    const color = await paintedColor(page.locator(selector));
+    for (let channel = 0; channel < 4; channel++) expect(Math.abs(color[channel] - expected[channel]), selector).toBeLessThanOrEqual(2);
+  }
+});
+
+test('keeps the orbital fallback label-free and transparent without JavaScript', async ({ browser }) => {
+  const context = await browser.newContext({ javaScriptEnabled: false, colorScheme: 'light', viewport: { width: 390, height: 844 } });
+  try {
+    const page = await context.newPage();
+    await controlNetwork(page);
+    await page.goto('http://127.0.0.1:4173/');
+    await expect(page.locator('.orbital-art')).toBeVisible();
+    await expect(page.locator('html')).toHaveCSS('color-scheme', 'dark');
+    const source = await page.locator('.orbital-art').getAttribute('src');
+    const response = await page.request.get(`http://127.0.0.1:4173/${source}`);
+    expect(response.status()).toBe(200);
+    const artwork = await page.evaluate((markup) => {
+      const svg = new DOMParser().parseFromString(markup, 'image/svg+xml');
+      return { captions: [...svg.querySelectorAll('text')].map((text) => text.textContent), frame: svg.querySelector('rect').getAttribute('fill') };
+    }, await response.text());
+    expect(artwork.captions).toEqual([]);
+    expect(artwork.frame).toBe('none');
+    await page.screenshot({ path: 'tests/Browser/Screenshots/visual-review/graphite-fallback-mobile.png' });
+  } finally {
+    await context.close();
+  }
 });
 
 test('shares compact transparent controls with hover borders and visible keyboard focus', async ({ page }) => {
