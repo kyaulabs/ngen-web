@@ -1773,7 +1773,6 @@ body.pkg-modal-open { overflow: hidden; }
   transform-origin: center;
   will-change: transform;
 }
-.space-star { fill: var(--space-star); }
 .orbit-scene { position: absolute; inset: 0; width: 100%; height: 100%; }
 .orbit-path, .orbit-reference {
   fill: none; stroke: var(--line-strong); stroke-width: 1.2;
