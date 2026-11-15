@@ -322,6 +322,16 @@ test('renders vivid blue, cyan, purple, magenta and pink nebula light', async ({
   expect(opacity).toBeGreaterThanOrEqual(0.1);
 });
 
+test('paints background star cores with warm, neutral and blue-white temperature colors', async ({ page }) => {
+  await load(page);
+  const colors = await page.locator('.space-star').evaluateAll((stars) => [...new Set(stars.map((star) => getComputedStyle(star).fill))]
+    .map((color) => color.match(/\d+/g).slice(0, 3).map(Number)));
+  expect(colors.length).toBeGreaterThanOrEqual(6);
+  expect(colors.some(([r, _g, b]) => r > b + 40)).toBe(true);
+  expect(colors.some((rgb) => Math.max(...rgb) - Math.min(...rgb) < 20)).toBe(true);
+  expect(colors.some(([r, _g, b]) => b > r + 20)).toBe(true);
+});
+
 test('renders orbiters as bright stellar cores with larger centered fading coronas', async ({ page }) => {
   await load(page);
   await expect(page.locator('.orbital-corona')).toHaveCount(3);

@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.\
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines
 and [Semantic Versioning](https://semver.org/spec/v2.0.0.html) for versioning adherance.
 
+## [💾](https://github.com/kyaulabs/ngen-web/releases/tag/v0.1.4) [0.1.4](https://github.com/kyaulabs/ngen-web/compare/v0.1.3...v0.1.4) - (2026-11-15)
+
+### 🐛 Bug Fixes
+
+- [Space] Preserve rendered stellar temperature colors ([57b1830](https://github.com/kyaulabs/ngen-web/commit/57b18307b15f2b36b743a90a72c3b7d382276424))
+
+### 💄 Styling
+
+- [Space] Render temperature-varied stellar point sources ([f91dac1](https://github.com/kyaulabs/ngen-web/commit/f91dac1a4e5ba9a69dfbc70d8e7be63a54228493))
+- [Ui] Strengthen panels and add stellar nebula contrast ([9394d6b](https://github.com/kyaulabs/ngen-web/commit/9394d6bcb6990351054b81ec00976a67d49658a3))
+- [Web] Strengthen dashboard contrast and render natural stellar light (#18) ([cc015c3](https://github.com/kyaulabs/ngen-web/commit/cc015c3962eda8d3d2215257a00d122dfab5e4ba))
+<!-- Auto-generated on 2026-11-15T14:42:22.632476076-08:00 -->
 ## [💾](https://github.com/kyaulabs/ngen-web/releases/tag/v0.1.3) [0.1.3](https://github.com/kyaulabs/ngen-web/compare/v0.1.2...v0.1.3) - (2026-11-15)
 
 ### 💄 Styling
