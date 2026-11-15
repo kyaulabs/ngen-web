@@ -1,4 +1,4 @@
-// $KYAULabs: space.test.js kyau@aura.kyaulabs 2026/11/13 -0800 Exp $
+// $KYAULabs: space.test.js kyau@aura.kyaulabs 2026/11/15 -0800 Exp $
 import { createRequire } from 'node:module';
 import { beforeEach, afterEach, expect, it, vi } from 'vitest';
 import { Space } from '../../space.js';
@@ -22,12 +22,13 @@ afterEach(() => {
   else delete Element.prototype.animate;
 });
 
-it('generates the stellar field and three orbital tracks with a globe on every track', () => {
+it('generates the stellar field and three orbital tracks with a luminous star on every track', () => {
   Space.init();
   expect(document.querySelectorAll('.space-background .space-field')).toHaveLength(1);
   expect(document.querySelectorAll('.space-star').length).toBeGreaterThan(80);
   expect(document.querySelectorAll('.orbit-track')).toHaveLength(3);
   expect(document.querySelectorAll('.orbit-track .orbital-globe')).toHaveLength(3);
+  expect(document.querySelectorAll('.orbit-track .orbital-corona')).toHaveLength(3);
   expect(document.querySelector('.orbital-system').classList.contains('space-ready')).toBe(true);
 });
 it('generates a dense star field and textured nebula clouds behind the page', () => {
@@ -48,7 +49,10 @@ it('animates nebula flow, star drift and orbits together, freezing every layer w
   const animations = Element.prototype.animate.mock.results.map(({ value }) => value);
   expect(animations).toHaveLength(2);
   expect(animations.every((animation) => animation.playState === 'running')).toBe(true);
-  const pose = () => [track.getAttribute('transform'), globe.getAttribute('cx')];
+  const corona = document.querySelector('.orbital-corona');
+  const pose = () => [track.getAttribute('transform'), globe.getAttribute('cx'), corona.getAttribute('cx')];
+  expect(corona.getAttribute('cx')).toBe(globe.getAttribute('cx'));
+  expect(corona.getAttribute('cy')).toBe(globe.getAttribute('cy'));
   const before = pose();
   await vi.waitFor(() => expect(track.getAttribute('transform')).not.toBe(before[0]));
   for (let i = 1; i < before.length; i++) expect(pose()[i]).not.toBe(before[i]);

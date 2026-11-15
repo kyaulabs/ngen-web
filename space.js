@@ -1,4 +1,4 @@
-// $KYAULabs: space.js kyau@aura.kyaulabs 2026/11/13 -0800 Exp $
+// $KYAULabs: space.js kyau@aura.kyaulabs 2026/11/15 -0800 Exp $
 /* Shared flowing space field, with orbital motion around the upright hero N. */
 'use strict';
 
@@ -14,7 +14,7 @@ const Space = (() => {
   function render(elapsed) {
     time = elapsed;
     tracks.attr('transform', (orbit) => `rotate(${orbit.tilt + elapsed * orbit.spin})`);
-    tracks.select('.orbital-globe')
+    tracks.selectAll('.orbital-globe, .orbital-corona')
       .attr('cx', (orbit) => Math.cos(orbit.phase + elapsed * orbit.speed) * orbit.rx)
       .attr('cy', (orbit) => Math.sin(orbit.phase + elapsed * orbit.speed) * orbit.ry);
   }
@@ -59,6 +59,12 @@ const Space = (() => {
       .attr('viewBox', '0 0 1600 1000').attr('preserveAspectRatio', 'xMidYMid slice').attr('aria-hidden', 'true');
     const random = d3.randomLcg(0.427);
     const fieldDefs = field.append('defs');
+    const spectrum = fieldDefs.append('linearGradient').attr('id', 'space-nebula-spectrum')
+      .attr('gradientUnits', 'userSpaceOnUse').attr('x1', 0).attr('y1', 1000).attr('x2', 1600).attr('y2', 0);
+    spectrum.selectAll('stop').data([
+      [0, 'blue'], [0.22, 'cyan'], [0.47, 'purple'], [0.72, 'magenta'], [1, 'pink'],
+    ]).join('stop').attr('offset', ([offset]) => `${offset * 100}%`)
+      .attr('stop-color', ([_offset, color]) => `var(--space-${color})`);
     // Static fractal texture is separate from the moving star layers.
     const texture = fieldDefs.append('filter').attr('id', 'space-cloud-texture')
       .attr('x', '-25%').attr('y', '-25%').attr('width', '150%').attr('height', '150%');
@@ -85,10 +91,15 @@ const Space = (() => {
       d3.range(count).map(() => [x + normal() * sx, y + normal() * sy]));
     const clouds = d3.contourDensity().x((point) => point[0]).y((point) => point[1])
       .size([1600, 1000]).bandwidth(48).thresholds(32)(gas);
-    field.append('g').attr('class', 'space-nebula').attr('filter', 'url(#space-cloud-texture)')
+    // Color the textured density mask once, rather than repainting the same
+    // large gradient for every overlapping contour at high resolutions.
+    const cloudMask = fieldDefs.append('mask').attr('id', 'space-nebula-mask')
+      .attr('maskUnits', 'userSpaceOnUse').attr('x', 0).attr('y', 0).attr('width', 1600).attr('height', 1000);
+    cloudMask.append('g').attr('class', 'space-nebula').attr('filter', 'url(#space-cloud-texture)')
       .selectAll('path').data(clouds).join('path').attr('d', d3.geoPath())
-      .attr('fill', (_cloud, i) => i < clouds.length * 0.75 ? 'var(--space-violet)' : 'var(--space-cyan)')
-      .attr('opacity', (_cloud, i) => 0.012 + (i / clouds.length) * 0.035);
+      .attr('fill', 'white').attr('opacity', (_cloud, i) => 0.025 + (i / clouds.length) * 0.1);
+    field.append('rect').attr('class', 'space-nebula-light').attr('width', 1600).attr('height', 1000)
+      .attr('fill', 'url(#space-nebula-spectrum)').attr('mask', 'url(#space-nebula-mask)');
     const stars = d3.select(background).append('div').attr('class', 'space-star-layer');
     const starField = stars.append('svg').attr('class', 'space-star-field')
       .attr('viewBox', '0 0 1600 1000').attr('preserveAspectRatio', 'xMidYMid slice').attr('aria-hidden', 'true');
@@ -119,18 +130,23 @@ const Space = (() => {
       .attr('viewBox', '-240 -240 480 480').attr('aria-hidden', 'true');
     const defs = scene.append('defs');
     for (const color of ['cyan', 'violet']) {
-      const globe = defs.append('radialGradient').attr('id', `space-globe-${color}`)
-        .attr('cx', '30%').attr('cy', '25%').attr('r', '75%');
-      globe.append('stop').attr('offset', '0%').attr('stop-color', 'var(--space-star)');
-      globe.append('stop').attr('offset', '32%').attr('stop-color', `var(--space-${color})`);
-      globe.append('stop').attr('offset', '100%').attr('stop-color', 'var(--space-shadow)');
+      const corona = defs.append('radialGradient').attr('id', `space-corona-${color}`)
+        .attr('cx', '50%').attr('cy', '50%').attr('r', '50%');
+      corona.append('stop').attr('offset', '0%').attr('stop-color', 'var(--space-star)').attr('stop-opacity', 0.95);
+      corona.append('stop').attr('offset', '25%').attr('stop-color', `var(--space-${color})`).attr('stop-opacity', 0.8);
+      corona.append('stop').attr('offset', '70%').attr('stop-color', `var(--space-${color})`).attr('stop-opacity', 0.16);
+      corona.append('stop').attr('offset', '100%').attr('stop-color', `var(--space-${color})`).attr('stop-opacity', 0);
     }
     scene.append('path').attr('d', 'M-223 0H223M0-219V219').attr('class', 'orbit-reference');
     tracks = scene.selectAll('g.orbit-track').data(orbits).join('g').attr('class', 'orbit-track');
     tracks.append('ellipse').attr('rx', (orbit) => orbit.rx).attr('ry', (orbit) => orbit.ry)
       .attr('class', (_orbit, i) => i === 2 ? 'orbit-path orbit-path-dashed' : 'orbit-path');
-    tracks.append('circle').attr('class', 'orbital-globe').attr('r', (orbit) => orbit.radius)
-      .attr('fill', (orbit) => `url(#space-globe-${orbit.color})`);
+    // White-hot points and broad, fading coronas emit light rather than
+    // shading a dark hemisphere like a reflective planet or metal sphere.
+    tracks.append('circle').attr('class', 'orbital-corona').attr('r', (orbit) => orbit.radius * 2.8)
+      .attr('fill', (orbit) => `url(#space-corona-${orbit.color})`);
+    tracks.append('circle').attr('class', 'orbital-globe').attr('r', (orbit) => orbit.radius * 0.5)
+      .attr('fill', 'var(--space-star)');
     system.classList.add('space-ready');
     render(0);
     media = window.matchMedia('(prefers-reduced-motion: reduce)');
