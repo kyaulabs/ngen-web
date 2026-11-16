@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.\
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines
 and [Semantic Versioning](https://semver.org/spec/v2.0.0.html) for versioning adherance.
 
+## [💾](https://github.com/kyaulabs/ngen-web/releases/tag/v0.1.5) [0.1.5](https://github.com/kyaulabs/ngen-web/compare/v0.1.4...v0.1.5) - (2026-11-16)
+
+### 💄 Styling
+
+- [Ui] Set shared panel fill to 60 percent ([128a5e2](https://github.com/kyaulabs/ngen-web/commit/128a5e245707f6fd957208a30a2e0fdab597b7f3))
+- [Ui] Use 60 percent shared panel fill (#21) ([d26f408](https://github.com/kyaulabs/ngen-web/commit/d26f408e0d5f2f437a52970a773c629f808a97cf))
+<!-- Auto-generated on 2026-11-15T16:32:04.569494254-08:00 -->
 ## [💾](https://github.com/kyaulabs/ngen-web/releases/tag/v0.1.4) [0.1.4](https://github.com/kyaulabs/ngen-web/compare/v0.1.3...v0.1.4) - (2026-11-15)
 
 ### 🐛 Bug Fixes
