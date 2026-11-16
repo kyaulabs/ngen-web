@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.\
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines
 and [Semantic Versioning](https://semver.org/spec/v2.0.0.html) for versioning adherance.
 
+## [💾](https://github.com/kyaulabs/ngen-web/releases/tag/v0.1.7) [0.1.7](https://github.com/kyaulabs/ngen-web/compare/v0.1.6...v0.1.7) - (2026-11-16)
+
+### 💄 Styling
+
+- [Brand] Refresh charcoal materials and fit motion controls ([95b8aef](https://github.com/kyaulabs/ngen-web/commit/95b8aefa9378e00b9b1d97039e9e8dfbb3003784))
+<!-- Auto-generated on 2026-11-15T22:58:47.193630901-08:00 -->
 ## [💾](https://github.com/kyaulabs/ngen-web/releases/tag/v0.1.6) [0.1.6](https://github.com/kyaulabs/ngen-web/compare/v0.1.5...v0.1.6) - (2026-11-16)
 
 ### 💄 Styling
