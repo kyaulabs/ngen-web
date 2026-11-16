@@ -19,7 +19,11 @@
         { "id": "tracker-dark", "colorScheme": "dark", "actions": [{ "type": "click", "selector": "#issues-list .term-open" }] },
         { "id": "contributor-dark", "colorScheme": "dark", "actions": [{ "type": "click", "selector": ".contrib-card" }] },
         { "id": "scrolled-dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": "#activity .sec-head" }] },
-        { "id": "footer-dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": ".footer" }] }
+        { "id": "footer-dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": ".footer" }] },
+        { "id": "scrolled-controls-hover-dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": "#activity .sec-head" }, { "type": "hover", "selector": "#motion-toggle" }] },
+        { "id": "tracker-close-hover-dark", "colorScheme": "dark", "actions": [{ "type": "click", "selector": "#issues-list .term-open" }, { "type": "hover", "selector": ".term-dot-close" }] },
+        { "id": "tracker-closed-dark", "colorScheme": "dark", "actions": [{ "type": "click", "selector": "#issues-tabs [data-state=closed]" }, { "type": "click", "selector": "#prs-tabs [data-state=closed]" }] },
+        { "id": "release-collapsed-dark", "colorScheme": "dark", "actions": [{ "type": "click", "selector": ".release-toggle" }, { "type": "wait-for-selector", "selector": ".release-card:not(.expanded)" }] }
       ]
     }
   ]

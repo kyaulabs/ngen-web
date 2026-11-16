@@ -1,4 +1,4 @@
-// $KYAULabs: app.js kyau@aura.kyaulabs 2026/11/14 -0800 Exp $
+// $KYAULabs: app.js kyau@aura.kyaulabs 2026/11/16 -0800 Exp $
 /* NGEN telemetry dashboard. Adapted from the KYAU Labs Prism dashboard (AGPL-3.0).
    Public GitHub data is untrusted; escape text and sanitize markdown links.
    Snapshot: data/snapshot.json. Missing record feeds remain empty. */
@@ -1355,22 +1355,16 @@ const Charts = {
  * UI — DOM renderers. Every renderer defensively escapes API strings.
  * ------------------------------------------------------------------------- */
 const UI = {
-  /** Inline SVG icon library (24 viewBox, stroke = currentColor). */
-  ICONS: {
-    star: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3.2l2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9L3.5 9.4l5.9-.8L12 3.2z"/></svg>',
-    fork: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="6" cy="5" r="2.2"/><circle cx="18" cy="5" r="2.2"/><circle cx="12" cy="19" r="2.2"/><path d="M6 7.2v3.1c0 2.2 2.6 3.4 6 3.4s6-1.2 6-3.4V7.2M12 13.7v3.1"/></svg>',
-    eye: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2.5 12S6 5.8 12 5.8 21.5 12 21.5 12 18 18.2 12 18.2 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.6"/></svg>',
-    issue: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/></svg>',
-    scale: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v18M5 21h14M12 5.5 6 7m6-1.5L18 7M6 7l-2.6 5.6a3 3 0 0 0 5.2 0L6 7zm12 0-2.6 5.6a3 3 0 0 0 5.2 0L18 7z"/></svg>',
-    clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.4"/><path d="M12 7.4V12l3.2 2"/></svg>',
-    commit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 2.6v6.4M12 15v6.4"/></svg>',
-    pr: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="6.4" cy="5.4" r="2.2"/><circle cx="6.4" cy="18.6" r="2.2"/><circle cx="17.6" cy="8.5" r="2.2"/><path d="M6.4 7.6v8.8M17.6 10.7c0 4.4-4.2 3.4-6.8 5.4"/></svg>',
-    users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.1"/><path d="M3.4 19.4c.7-3.3 2.9-5 5.6-5s4.9 1.7 5.6 5M15.5 5.6a3.1 3.1 0 0 1 0 5.7M17.7 14.7c1.6.8 2.6 2.3 3 4.7"/></svg>',
-    code: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6 2.8 12 8 18M16 6l5.2 6L16 18"/></svg>',
-    calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3.4" y="5" width="17.2" height="15.6" rx="2.4"/><path d="M3.4 10h17.2M8 2.8V6.4M16 2.8V6.4"/></svg>',
-    branch: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 4v13"/><circle cx="7" cy="5" r="2"/><circle cx="7" cy="19" r="2"/><circle cx="17" cy="7" r="2"/><path d="M17 9c0 5-6.5 3.6-8.6 6.6"/></svg>',
-    shield: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 2.8 4.6 5.6v6c0 4.8 3.1 8.3 7.4 9.6 4.3-1.3 7.4-4.8 7.4-9.6v-6L12 2.8z"/><path d="M9 11.8l2.2 2.2 3.8-3.8"/></svg>',
-  },
+  /** Font Awesome Free 7.3.1; local, attributed SVG symbols, not a remote kit. */
+  ICONS: Object.fromEntries(Object.entries({
+    star: 'star', fork: 'code-fork', eye: 'eye', issue: 'circle-dot',
+    scale: 'scale-balanced', clock: 'clock', commit: 'code-commit', pr: 'code-pull-request',
+    users: 'users', code: 'code', calendar: 'calendar', branch: 'code-branch', shield: 'shield-halved',
+    chevron: 'chevron-down', check: 'check', close: 'xmark', external: 'arrow-up-right-from-square',
+    copy: 'copy', pause: 'pause', play: 'play', profile: 'angles-right', download: 'download',
+    closed: 'circle-check', merged: 'code-merge', github: 'github',
+  }).map(([key, name]) => [key, `<svg class="fa-icon${key === 'chevron' ? ' release-chevron' : ''}" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="vendor/fontawesome-icons.svg#${name}" width="24" height="24"></use></svg>`])),
+
 
   /**
    * Render the hero statistic chips from repository metadata. Every chip is
@@ -1492,7 +1486,7 @@ const UI = {
         ? 'Release feed unavailable. No release records have been invented.'
         : (data.releases.length ? 'Streamed live from the GitHub Releases feed.' : 'No GitHub releases published yet.');
     }
-    const chevron = '<svg class="release-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9.5l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    const chevron = this.ICONS.chevron;
     el.innerHTML = data.releases.map((r, i) => `
       <div class="release-item">
         <article class="panel release-card${r.latest ? ' expanded' : ''}">
@@ -1647,7 +1641,7 @@ const UI = {
       <li class="term-row">
         <button type="button" class="term-open" data-num="${r.number}" aria-haspopup="dialog"
                 aria-label="Open ${kind === 'pr' ? 'pull request' : 'issue'} #${r.number}: ${Utils.esc(r.title)}">
-          <span class="st ${stClass}" title="${stTitle}"></span>
+          <span class="st ${stClass}" title="${stTitle}">${{ 'st-open': this.ICONS.issue, 'st-closed': this.ICONS.closed, 'st-merged': this.ICONS.merged }[stClass]}</span>
           <span class="num">#${r.number}</span>
           <span class="t-title">${Utils.esc(r.title)}</span>
           <span class="t-meta">${labels}<span>@${Utils.esc(r.user)}</span><span>·</span><span>${Utils.timeAgo(r.updatedAt)}</span></span>
@@ -1691,7 +1685,7 @@ const UI = {
         </div>
         <div class="contrib-bar"><i style="width:${pct}%"></i></div>
         <div class="contrib-count"><strong>${Utils.fmtInt(c.contributions || 0)}</strong> commits on default branch</div>
-        <span class="pkg-cta">profile »</span>
+        <span class="pkg-cta">profile ${this.ICONS.profile}</span>
       </article>`;
     }).join('');
 
@@ -1799,7 +1793,7 @@ const UI = {
       }
       if (status) status.textContent = 'Source clone command copied.';
       const prev = btn.innerHTML;
-      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5l5 5 10-11"/></svg>';
+      btn.innerHTML = UI.ICONS.check;
       setTimeout(() => { btn.innerHTML = prev; }, 1200);
     });
   },
@@ -1980,8 +1974,8 @@ const ItemModal = {
 
     this.box.innerHTML = `
       <div class="term-bar pkg-modal-bar">
-        <button class="icon-btn term-dot-close" type="button" aria-label="Close ${isPr ? 'pull request' : 'issue'} details">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        <button class="term-dot term-dot-close" type="button" aria-label="Close ${isPr ? 'pull request' : 'issue'} details">
+          ${UI.ICONS.close}
         </button><span class="term-dot"></span><span class="term-dot"></span>
         <span class="term-title">${isPr ? 'pr' : 'issue'}://${CONFIG.owner}/${CONFIG.repo}#${row.number}</span>
       </div>
@@ -2000,7 +1994,7 @@ const ItemModal = {
         <div class="item-actions">
           <a class="btn" href="${Utils.esc(row.url)}" target="_blank" rel="noopener">
             View on GitHub
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            ${UI.ICONS.external}
           </a>
         </div>
         <h4 class="pkg-modal-h">${isPr ? 'Pull Request' : 'Issue'} Body <span class="h-sub">// markdown</span></h4>
@@ -2145,7 +2139,7 @@ const ContribModal = {
     const tracked = authored(STATE.data.issues) + authored(STATE.data.pulls);
 
     const initials = Utils.esc(login.slice(0, 2).toUpperCase());
-    const arrow = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    const arrow = UI.ICONS.external;
     const stats = [
       ['commits', Utils.fmtInt(c.contributions || 0)],
       ['share', `${share}%`],
@@ -2155,8 +2149,8 @@ const ContribModal = {
 
     this.box.innerHTML = `
       <div class="term-bar pkg-modal-bar">
-        <button class="icon-btn term-dot-close" type="button" aria-label="Close contributor profile">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        <button class="term-dot term-dot-close" type="button" aria-label="Close contributor profile">
+          ${UI.ICONS.close}
         </button><span class="term-dot"></span><span class="term-dot"></span>
         <span class="term-title">operator://${Utils.esc(login)}</span>
       </div>
@@ -2360,7 +2354,7 @@ async function boot() {
     const paused = document.body.classList.toggle('motion-paused');
     motionToggle.setAttribute('aria-pressed', String(paused));
     motionToggle.setAttribute('aria-label', `${paused ? 'Resume' : 'Pause'} background animation`);
-    motionToggle.textContent = paused ? '▶' : 'Ⅱ';
+    motionToggle.innerHTML = paused ? UI.ICONS.play : UI.ICONS.pause;
     document.dispatchEvent(new Event('ngen:motionchange'));
   });
   document.addEventListener('visibilitychange', () => {
