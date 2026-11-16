@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.\
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines
 and [Semantic Versioning](https://semver.org/spec/v2.0.0.html) for versioning adherance.
 
+## [💾](https://github.com/kyaulabs/ngen-web/releases/tag/v0.1.6) [0.1.6](https://github.com/kyaulabs/ngen-web/compare/v0.1.5...v0.1.6) - (2026-11-16)
+
+### 💄 Styling
+
+- [Tracker] Remove individual issue and pr row borders ([6d49f33](https://github.com/kyaulabs/ngen-web/commit/6d49f33e515b27d07fbe84fe6604f463baad6d6f))
+- [Tracker] Remove individual issue and pr row borders (#24) ([f97a649](https://github.com/kyaulabs/ngen-web/commit/f97a649b150527b75d09d39e5f290c6c6e6cfb3d))
+<!-- Auto-generated on 2026-11-15T18:32:02.635683290-08:00 -->
 ## [💾](https://github.com/kyaulabs/ngen-web/releases/tag/v0.1.5) [0.1.5](https://github.com/kyaulabs/ngen-web/compare/v0.1.4...v0.1.5) - (2026-11-16)
 
 ### 💄 Styling
