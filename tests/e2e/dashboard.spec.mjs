@@ -48,23 +48,60 @@ test('preserves the dashboard with NGEN identity, live charts and an honest game
   expect(errors).toEqual([]);
 });
 
-test('uses the Graphite 1.2 page, panel and Slate header colors in dark mode', async ({ page }) => {
+test('uses the charcoal page, translucent panels and faint borders throughout dark mode', async ({ page }) => {
   await load(page);
   const tokens = await page.locator('html').evaluate((element) => {
     const style = getComputedStyle(element);
     return ['bg', 'surface', 'panel-header', 'surface-alt'].map((key) => style.getPropertyValue(`--ngen-${key}`).trim().toUpperCase());
   });
-  expect(tokens).toEqual(['#202124', '#2A2B2F', '#3A414E', '#3A414E']);
-  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#202124');
+  expect(tokens).toEqual(['#191919', '#191919', '#27303A', '#27303A']);
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#191919');
   for (const [selector, expected] of [
-    ['body', [32, 33, 36, 255]],
-    ['.space-background', [32, 33, 36, 255]],
-    ['#install', [42, 43, 47, 153]],
-    ['#install .term-bar', [58, 65, 78, 217]],
+    ['body', [25, 25, 25, 255]],
+    ['.space-background', [25, 25, 25, 255]],
+    ['#install', [25, 25, 25, 179]],
+    ['#install .term-bar', [39, 48, 58, 166]],
+    ['.footer', [25, 25, 25, 255]],
   ]) {
     const color = await paintedColor(page.locator(selector));
     for (let channel = 0; channel < 4; channel++) expect(Math.abs(color[channel] - expected[channel]), selector).toBeLessThanOrEqual(2);
   }
+  for (const selector of ['#motion-toggle', '.nav-gh', '#install', '.footer']) {
+    const border = await paintedColor(page.locator(selector), 'borderTopColor');
+    for (const [channel, expected] of [120, 153, 166, 89].entries()) expect(Math.abs(border[channel] - expected)).toBeLessThanOrEqual(2);
+  }
+});
+
+test('renders the brand reference materials consistently while retaining its light palette', async ({ page }) => {
+  // Reference sources are not application assets; supply their actual bytes at the file boundary.
+  await page.route(/\/brand\/web\/(?:ngen-theme\.css|palette-preview\.js)$/, async (route) => {
+    const filename = new URL(route.request().url()).pathname.endsWith('.css') ? 'ngen-theme.css' : 'palette-preview.js';
+    await route.fulfill({ contentType: filename.endsWith('.css') ? 'text/css' : 'text/javascript', body: await readFile(`brand/web/${filename}`, 'utf8') });
+  });
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.goto('/brand/web/palette-preview.html');
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(25, 25, 25)');
+  await page.emulateMedia({ colorScheme: 'light' });
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(243, 243, 244)');
+  await page.locator('#theme').selectOption('dark');
+  const tokens = JSON.parse(await readFile('brand/web/ngen-tokens.json', 'utf8'));
+  expect(tokens.version).toBe('1.3');
+  for (const [selector, color] of [
+    ['body', [25, 25, 25, 255]],
+    ['.panel', [25, 25, 25, 179]],
+    ['.panel-title', [39, 48, 58, 166]],
+  ]) {
+    const rendered = await paintedColor(page.locator(selector));
+    for (const [channel, expected] of color.entries()) expect(Math.abs(rendered[channel] - expected)).toBeLessThanOrEqual(2);
+  }
+  expect((await paintedColor(page.locator('.panel'), 'borderTopColor'))[3]).toBe(89);
+  expect((await paintedColor(page.locator('#theme'), 'borderTopColor'))[3]).toBe(89);
+  await page.locator('#theme').selectOption('light');
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(243, 243, 244)');
+  await expect(page.locator('.panel')).toHaveCSS('background-color', 'rgb(247, 247, 248)');
+  await expect(page.locator('.panel-title')).toHaveCSS('background-color', 'rgb(231, 235, 244)');
+  await expect(page.locator('.panel')).toHaveCSS('border-top-color', 'rgb(184, 210, 220)');
 });
 
 test('keeps the orbital fallback label-free and transparent without JavaScript', async ({ browser }) => {
@@ -97,7 +134,7 @@ test('uses pronounced filled controls and a primary action without losing keyboa
   for (const selector of ['#motion-toggle', '.nav-gh']) {
     const box = await page.locator(selector).boundingBox();
     expect(box.height).toBeCloseTo(badgeBox.height, 1);
-    expect(box.width).toBeCloseTo(badgeBox.width, 1);
+    if (selector === '.nav-gh') expect(box.width).toBeCloseTo(badgeBox.width, 1);
   }
   const controls = page.locator('.nav-actions > *, .hero-cta .btn:not(.btn-primary), .hero-chips .chip, .clone-copy, .release-toggle, .release-tag, .branch-sha, .pkg-tab');
   for (const control of await controls.all()) {
@@ -106,7 +143,7 @@ test('uses pronounced filled controls and a primary action without losing keyboa
     await expect(control).toHaveCSS('border-top-left-radius', '10px');
   }
   for (const control of await page.locator('.nav-actions > *, .hero-cta .btn:not(.btn-primary), .hero-chips .chip, .clone-copy').all()) {
-    expect((await paintedColor(control))[3] / 255).toBeCloseTo(0.6, 2);
+    expect((await paintedColor(control))[3] / 255).toBeCloseTo(0.7, 2);
     await expect(control).toHaveCSS('opacity', '1');
   }
   const primary = page.locator('.hero-cta .btn-primary');
@@ -127,7 +164,7 @@ test('uses pronounced filled controls and a primary action without losing keyboa
   await pause.focus();
   await expect(pause).toHaveCSS('outline-style', 'solid');
   await expect(pause).toHaveCSS('outline-width', '2px');
-  await expect(pause).toHaveCSS('border-top-color', 'rgb(120, 153, 166)');
+  expect((await paintedColor(pause, 'borderTopColor'))[3]).toBeCloseTo(89, 0);
   await page.locator('#issues-list .term-open').first().click();
   const close = page.getByRole('button', { name: 'Close issue details' });
   expect((await paintedColor(close))[3]).toBeGreaterThan(25);
@@ -140,12 +177,41 @@ test('uses pronounced filled controls and a primary action without losing keyboa
   await expect(page.locator('#item-modal')).toBeHidden();
 });
 
-test('uses 60 percent Graphite panel fills without fading content or changing Slate titlebars', async ({ page }) => {
+test('fits the header motion button to its icon in both playback states', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  for (const [width, height] of [[390, 844], [1920, 1080]]) {
+    await page.setViewportSize({ width, height });
+    await load(page);
+    const pause = page.locator('#motion-toggle');
+    for (const pressed of ['true', 'false']) {
+      await pause.press('Space');
+      await expect(pause).toHaveAttribute('aria-pressed', pressed);
+      const size = await pause.evaluate((element) => {
+        const style = getComputedStyle(element);
+        const glyph = document.createRange();
+        glyph.selectNodeContents(element);
+        return {
+          width: element.getBoundingClientRect().width,
+          height: element.getBoundingClientRect().height,
+          intrinsic: glyph.getBoundingClientRect().width
+            + parseFloat(style.paddingLeft) + parseFloat(style.paddingRight)
+            + parseFloat(style.borderLeftWidth) + parseFloat(style.borderRightWidth),
+        };
+      });
+      expect(size.width).toBeCloseTo(size.intrinsic, 0);
+      expect(size.width).toBeGreaterThanOrEqual(24);
+      expect(size.height).toBeGreaterThanOrEqual(24);
+      await expect(pause).toHaveCSS('outline-width', '2px');
+    }
+  }
+});
+
+test('uses 70 percent panel and 65 percent header fills without fading content', async ({ page }) => {
   await load(page);
   async function checkSurfaces() {
     for (const [selector, expected] of [
-      ['.panel:visible', 0.6],
-      ['.term-bar:visible, .tracker-tabs:visible, .item-fields:visible, .contrib-stat:visible', 0.85],
+      ['.panel:visible', 0.7],
+      ['.term-bar:visible, .tracker-tabs:visible, .item-fields:visible, .contrib-stat:visible', 0.65],
     ]) {
       for (const surface of await page.locator(selector).all()) {
         expect((await paintedColor(surface))[3] / 255).toBeCloseTo(expected, 2);
@@ -154,7 +220,7 @@ test('uses 60 percent Graphite panel fills without fading content or changing Sl
     }
     for (const panel of await page.locator('.panel:visible').all()) {
       const border = await paintedColor(panel, 'borderTopColor');
-      expect(contrastRatio(border, [42, 43, 47])).toBeGreaterThanOrEqual(3);
+      expect(border[3] / 255).toBeCloseTo(0.35, 2); // decorative boundary, not a focus indicator
     }
   }
   await checkSurfaces();
