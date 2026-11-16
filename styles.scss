@@ -1436,10 +1436,9 @@ body.pkg-modal-open { overflow: hidden; }
 
 .term-list { list-style: none; max-height: 430px; overflow-y: auto; }
 
-.term-row { display: block; border-bottom: 1px solid var(--line); }
-.term-row:last-child { border-bottom: 0; }
+.term-row { display: block; }
 
-/* Rows are <button>s — activation opens the ItemModal details popup. */
+/* Flat list rows remain buttons; keyboard focus stays inside the scroll area. */
 .term-row .term-open {
   display: grid;
   grid-template-columns: 18px 58px 1fr;
@@ -1447,9 +1446,12 @@ body.pkg-modal-open { overflow: hidden; }
   align-items: start;
   width: 100%;
   padding: 13px 18px;
+  border: 0;
+  border-radius: 0;
   text-align: left;
   white-space: normal;
 }
+.term-row .term-open:focus-visible { outline-offset: -3px; }
 
 .st { position: relative; width: 15px; height: 15px; margin-top: 2px; }
 .st-open {
