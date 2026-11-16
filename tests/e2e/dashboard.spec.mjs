@@ -99,7 +99,7 @@ test('uses pronounced filled controls and a primary action without losing keyboa
     expect(box.height).toBeCloseTo(badgeBox.height, 1);
     expect(box.width).toBeCloseTo(badgeBox.width, 1);
   }
-  const controls = page.locator('.nav-actions > *, .hero-cta .btn:not(.btn-primary), .hero-chips .chip, .clone-copy, .release-toggle, .release-tag, .branch-sha, .pkg-tab, .term-open');
+  const controls = page.locator('.nav-actions > *, .hero-cta .btn:not(.btn-primary), .hero-chips .chip, .clone-copy, .release-toggle, .release-tag, .branch-sha, .pkg-tab');
   for (const control of await controls.all()) {
     expect((await paintedColor(control))[3]).toBeGreaterThan(25);
     await expect(control).not.toHaveCSS('border-top-color', 'rgba(0, 0, 0, 0)');
@@ -261,6 +261,58 @@ test('keeps viewport-sized space behind the dashboard with an opaque footer', as
   await page.locator('.footer').scrollIntoViewIfNeeded();
   expect(await background.boundingBox()).toEqual(original);
 });
+
+for (const width of [1920, 390, 320]) {
+  test(`keeps issue and PR rows borderless while retaining keyboard activation at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: width === 1920 ? 1080 : 844 });
+    await page.route(/https:\/\/api\.github\.com\/repos\/kyaulabs\/ngen\/(?:issues|pulls)\?/, async (route) => {
+      const url = new URL(route.request().url());
+      const pr = url.pathname.endsWith('/pulls');
+      await route.fulfill({ json: Array.from({ length: 2 }, (_, index) => ({
+        number: (pr ? 201 : 101) + index, title: `Controlled ${pr ? 'pull request' : 'issue'} ${index + 1}`,
+        state: url.searchParams.get('state'), html_url: `https://github.com/kyaulabs/ngen/${pr ? 'pull' : 'issues'}/${(pr ? 201 : 101) + index}`,
+        user: { login: 'kyau', html_url: 'https://github.com/kyau' }, labels: [],
+        created_at: '2026-11-01T00:00:00Z', updated_at: '2026-11-12T00:00:00Z', body: 'Controlled tracker details.',
+      })) });
+    });
+    await page.route('https://api.github.com/search/issues?**', (route) => route.fulfill({ json: { total_count: 2 } }));
+    await load(page);
+    for (const prefix of ['issues', 'prs']) {
+      const list = page.locator(`#${prefix}-list`);
+      await expect(list.locator('..')).toHaveCSS('border-top-width', '1px');
+      for (const state of ['open', 'closed']) {
+        const tab = page.locator(`#${prefix}-tabs [data-state="${state}"]`);
+        await tab.click();
+        const rows = list.locator('.term-row');
+        await expect(rows).toHaveCount(2);
+        for (const row of await rows.all()) {
+          await expect(row).toHaveCSS('border-bottom-width', '0px');
+          const button = row.locator('.term-open');
+          await expect(button).toHaveCSS('border-width', '0px');
+          await expect(button).toHaveCSS('border-radius', '0px');
+        }
+        const first = rows.first().locator('.term-open');
+        const resting = await first.evaluate((element) => getComputedStyle(element).backgroundColor);
+        await first.hover();
+        await expect(first).toHaveCSS('border-width', '0px');
+        await expect(first).not.toHaveCSS('background-color', resting);
+        await page.mouse.move(0, 0);
+        await tab.focus(); await page.keyboard.press('Tab'); await first.focus();
+        await expect(first).toHaveCSS('outline-style', 'solid');
+        await expect(first).toHaveCSS('outline-width', '2px');
+        await expect(first).toHaveCSS('outline-offset', '-3px');
+        await first.press('Enter');
+        await expect(page.locator('#item-modal')).toBeVisible();
+        await page.keyboard.press('Escape');
+        await expect(first).toBeFocused();
+      }
+    }
+    await page.evaluate(() => document.activeElement.blur());
+    await page.mouse.move(0, 0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.locator('#tracker .grid-tracker').screenshot({ path: `tests/Browser/Screenshots/visual-review/tracker-rows-${width}.png`, animations: 'disabled' });
+  });
+}
 
 test('supports tracker tabs, safe markdown, modal focus containment and focus restoration', async ({ page }) => {
   await load(page);
