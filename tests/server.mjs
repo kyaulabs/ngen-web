@@ -1,4 +1,4 @@
-// $KYAULabs: server.mjs kyau@aura.kyaulabs 2026/11/13 -0800 Exp $
+// $KYAULabs: server.mjs kyau@aura.kyaulabs 2026/11/15 -0800 Exp $
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, resolve } from 'node:path';
@@ -22,5 +22,5 @@ createServer(async (request, response) => {
   } catch {
     response.writeHead(404).end();
   }
-}).listen(4173, '127.0.0.1');
+}).listen(4173, '127.0.0.1', () => process.send?.('ready'));
 // vim: ft=javascript sts=4 sw=4 ts=4 et :
