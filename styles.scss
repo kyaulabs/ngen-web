@@ -1,15 +1,15 @@
 // $KYAULabs: styles.scss kyau@aura.kyaulabs 2026/11/15 -0800 Exp $
 /* NGEN visual system, adapted from the KYAU Labs Prism dashboard (AGPL-3.0).
-   Dark palette from the supplied brand pack; the website has no light mode. */
+   User-approved brand 1.3 dark palette; the website has no light mode. */
 :root {
   color-scheme: dark;
-  --ngen-bg: #202124;
-  --ngen-surface: #2A2B2F;
-  --ngen-panel-header: #3A414E;
+  --ngen-bg: #191919;
+  --ngen-surface: #191919;
+  --ngen-panel-header: #27303A;
   --ngen-surface-alt: var(--ngen-panel-header);
   --ngen-text: #DDF3F8;
   --ngen-muted: #A9C5D0;
-  --ngen-border: #315362;
+  --ngen-border: #7899A6;
   --ngen-control-border: #7899A6;
   --ngen-accent: #63DDF8;
   --ngen-accent-hover: #89E8FA;
@@ -29,14 +29,14 @@
   --space-muted: var(--ngen-muted);
   --space-cyan: var(--ngen-accent);
   --space-violet: var(--ngen-secondary);
-  --bg-0: var(--ngen-bg);
+  --bg-0: #191919;
   --bg-1: var(--ngen-surface-alt);
-  /* User-approved translucency; text opacity and Slate fills are unchanged. */
-  --panel: color-mix(in srgb, var(--ngen-surface) 60%, transparent);
+  /* Background alpha only; content and keyboard focus remain opaque. */
+  --panel: color-mix(in srgb, #191919 70%, transparent);
   --panel-solid: var(--ngen-surface);
-  --panel-2: color-mix(in srgb, var(--ngen-panel-header) 85%, transparent);
-  --line: var(--ngen-border);
-  --line-strong: var(--ngen-control-border);
+  --panel-2: color-mix(in srgb, #27303a 65%, transparent);
+  --line: color-mix(in srgb, #7899A6 35%, transparent);
+  --line-strong: color-mix(in srgb, #7899A6 35%, transparent);
   --ink-0: var(--ngen-text);
   --ink-1: var(--ngen-muted);
   --ink-2: var(--ngen-muted);
@@ -204,6 +204,7 @@ img { max-width: 100%; display: block; }
   letter-spacing: 0.18em;
   flex-shrink: 0;
 }
+.nav #motion-toggle { min-inline-size: auto; }
 
 /* ----------------------------------------------------------------------------
    05. BUTTONS, BADGES, CHIPS
@@ -283,8 +284,6 @@ button, .btn, .icon-btn, .badge, .chip, .pkg-cta, .branch-sha, .release-tag {
   --accent-2: var(--space-violet);
   --accent-ink: #08212B;
   --accent-dim: rgba(99, 221, 248, 0.08);
-  --line: #315362;
-  --line-strong: #7899A6;
 }
 .hero {
   background: transparent;

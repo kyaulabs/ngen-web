@@ -1,14 +1,14 @@
 {
   "name": "NGEN",
-  "version": "1.2",
+  "version": "1.3",
   "themes": {
     "dark": {
-      "bg": "#202124",
-      "surface": "#2A2B2F",
-      "panel-header": "#3A414E",
+      "bg": "#191919",
+      "surface": "#191919",
+      "panel-header": "#27303A",
       "text": "#DDF3F8",
       "muted": "#A9C5D0",
-      "border": "#315362",
+      "border": "#7899A6",
       "control-border": "#7899A6",
       "accent": "#63DDF8",
       "accent-hover": "#89E8FA",
@@ -19,7 +19,7 @@
       "success": "#7FDFBB",
       "warning": "#FFD38A",
       "danger": "#FFA9AC",
-      "surface-alt": "#3A414E"
+      "surface-alt": "#27303A"
     },
     "light": {
       "bg": "#F3F3F4",
@@ -39,6 +39,22 @@
       "warning": "#80500A",
       "danger": "#A52F42",
       "surface-alt": "#E7EBF4"
+    }
+  },
+  "components": {
+    "dark": {
+      "bg-0": "#191919",
+      "panel": "color-mix(in srgb, #191919 70%, transparent)",
+      "panel-2": "color-mix(in srgb, #27303a 65%, transparent)",
+      "line": "color-mix(in srgb, #7899A6 35%, transparent)",
+      "line-strong": "color-mix(in srgb, #7899A6 35%, transparent)"
+    },
+    "light": {
+      "bg-0": "#F3F3F4",
+      "panel": "#F7F7F8",
+      "panel-2": "#E7EBF4",
+      "line": "#B8D2DC",
+      "line-strong": "#5C7D8B"
     }
   },
   "typography": {

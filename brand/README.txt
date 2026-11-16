@@ -1,4 +1,4 @@
-NGEN VISUAL IDENTITY 1.2
+NGEN VISUAL IDENTITY 1.3
 KYAU Labs
 
 NGEN is a C++20 game engine for space simulators, with a focus on space MMOs.
@@ -9,7 +9,8 @@ START HERE
 
   guide/ngen-brand-guide.pdf
       Eleven-page guide to the identity, clear space, sizing, color, type,
-      artwork, and website integration. Page PNGs and SVGs are in guide/pages/.
+      artwork, and website integration. Editable HTML source sits alongside
+      the PDF. Page PNGs and SVGs are in guide/pages/.
 
   identity/
       Combined identity board plus dark and light presentation variants.
@@ -37,8 +38,10 @@ START HERE
 
   web/
       ngen-theme.css follows the system theme. Set data-theme on the html
-      element to "light" or "dark" to override it. ngen-tokens.json contains
-      the same values. Open palette-preview.html locally to inspect the tokens
+      element to "light" or "dark" to override it. ngen-tokens.json separates
+      base theme colors from the five component material expressions. CSS
+      exposes base colors as --ngen-* and material aliases as --bg-0, --panel,
+      --panel-2, --line and --line-strong. Open palette-preview.html locally to inspect the tokens
       and try both modes. The palettes/ folder has PNG and SVG swatch sheets.
       open-graph.example.html is a starting point for sharing metadata.
 
@@ -57,6 +60,31 @@ ASSET USE
   For an explicit site theme, select the matching fixed-theme favicon.
   Point Open Graph metadata to one hosted PNG using an absolute URL.
 
-  The Graphite palette uses bg for the page, surface for panels, and
-  panel-header for the Slate header surface. surface-alt shares the panel
-  header color. Slate uses #3A414E in dark mode and #E7EBF4 in light mode.
+  The dark page, space backdrop, header/footer base and opaque exports use
+  #191919. Panel materials use 70% #191919; secondary/header materials use
+  65% #27303a. Both line aliases use 35% #7899A6. These are background and
+  border alpha, not reduced text or whole-element opacity. surface-alt shares
+  the panel-header base color. Light reference materials remain unchanged.
+  Keep bright focus rings and labeled controls; faint borders are decorative.
+  Guide contrast ratios use alpha composited over the reference page, not
+  arbitrary imagery, and do not establish full accessibility conformance.
+
+REVISION AND EXPORTS
+
+  Revision 1.3 is a user-authorized update of the supplied Graphite 1.2 pack.
+  It refreshes dark materials, swatches, previews, the guide, affected dark
+  presentation artwork and matching raster exports. All original asset paths,
+  logo geometry, accent colors, monochrome artwork and light-specific logo,
+  icon, social and schematic assets are retained. Mixed-mode boards and guide
+  pages show updated dark references; the light swatch sheet changes only its
+  revision label. Light colors and artwork geometry are unchanged.
+  The original supplied archive is not modified. Website and brand versions
+  are independent; the website remains dark-only.
+
+  In the website source checkout, npm run build:brand rebuilds reference CSS,
+  the dark swatch SVG, affected PNG/ICO exports, PDF and guide page exports.
+  Inputs are web/ngen-tokens.json, affected SVG masters and the guide HTML.
+  It uses installed Playwright/Chromium, rsvg-convert, pdftocairo and ImageMagick
+  (magick), with Noto Sans and Adwaita Sans/Mono installed to retain the supplied
+  typography. Port 4173 must be free. No new npm dependency or production server
+  is required; ordinary website builds/deployments do not run this command.
