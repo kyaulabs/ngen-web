@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.\
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines
 and [Semantic Versioning](https://semver.org/spec/v2.0.0.html) for versioning adherance.
 
+## [💾](https://github.com/kyaulabs/ngen-web/releases/tag/v0.1.8) [0.1.8](https://github.com/kyaulabs/ngen-web/compare/v0.1.7...v0.1.8) - (2026-11-16)
+
+### 🐛 Bug Fixes
+
+- [Ui] Align prism template and fit scaled laptop viewports ([91a7b2e](https://github.com/kyaulabs/ngen-web/commit/91a7b2e41766bf4df606b89728ea012f7ad9a4d2))
+- [Ui] Integrate prism parity and scaled hero layout (#30) ([7404d13](https://github.com/kyaulabs/ngen-web/commit/7404d13dd082e880ecb8899c218b0a592a50f8a6))
+<!-- Auto-generated on 2026-11-16T08:57:07.424851025-08:00 -->
 ## [💾](https://github.com/kyaulabs/ngen-web/releases/tag/v0.1.7) [0.1.7](https://github.com/kyaulabs/ngen-web/compare/v0.1.6...v0.1.7) - (2026-11-16)
 
 ### 💄 Styling
