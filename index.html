@@ -4,17 +4,20 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="NGEN — a C++20 game engine for space simulators, with a focus on space MMOs. Explore the engine and its live repository telemetry." />
-  <meta name="theme-color" content="#191919" />
+  <meta name="theme-color" content="#04060c" />
   <meta name="color-scheme" content="dark" />
   <meta property="og:title" content="NGEN // Space Simulation Engine" />
   <meta property="og:description" content="A C++20 game engine for space simulation by KYAU Labs." />
   <meta property="og:type" content="website" />
   <title>NGEN // Space Simulation Engine</title>
   <link rel="icon" type="image/svg+xml" href="brand/icons/favicon/favicon.svg" />
-  <link rel="stylesheet" href="styles.min.css?v=0.1.7" />
+  <link rel="preload" href="brand/web/fonts/NeoSansPro-Regular.ttf" as="font" type="font/ttf" crossorigin />
+  <link rel="preload" href="brand/web/fonts/NeoSansPro-Bold.ttf" as="font" type="font/ttf" crossorigin />
+  <link rel="preload" href="brand/web/fonts/OperatorMonoLigNerdFont-Regular.otf" as="font" type="font/otf" crossorigin />
+  <link rel="stylesheet" href="styles.min.css?v=0.1.8" />
   <script src="vendor/d3.min.js" defer></script>
-  <script src="space.min.js?v=0.1.7" defer></script>
-  <script src="app.min.js?v=0.1.7" defer></script>
+  <script src="space.min.js?v=0.1.8" defer></script>
+  <script src="app.min.js?v=0.1.8" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -30,8 +33,8 @@
     </nav>
     <div class="nav-actions">
       <span id="feed-badge" class="badge badge-live" title="Data feed status"><span class="badge-dot" aria-hidden="true"></span><span id="feed-badge-text">SYNC</span></span>
-      <button id="motion-toggle" class="icon-btn" type="button" aria-label="Pause background animation" aria-pressed="false"><span aria-hidden="true">Ⅱ</span></button>
-      <a class="btn nav-gh" href="https://github.com/kyaulabs/ngen" target="_blank" rel="noopener">GitHub</a>
+      <button id="motion-toggle" class="icon-btn" type="button" aria-label="Pause background animation" aria-pressed="false"><svg class="fa-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="vendor/fontawesome-icons.svg#pause" width="24" height="24"></use></svg></button>
+      <a class="btn nav-gh" href="https://github.com/kyaulabs/ngen" target="_blank" rel="noopener"><svg class="fa-icon ico-gh" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="vendor/fontawesome-icons.svg#github" width="24" height="24"></use></svg><span>GitHub</span></a>
     </div>
   </header>
   <main id="main">
@@ -50,12 +53,12 @@
           <p class="hero-tag reveal">A C++20 game engine for space simulators, with a focus on space MMOs. Engineered by KYAU Labs. <em>Observed here, live, as pure telemetry.</em></p>
           <div class="hero-chips reveal" id="hero-chips" aria-label="Repository counters"><span class="chip skeleton-chip">— syncing —</span></div>
           <div class="hero-cta reveal">
-            <a class="btn btn-primary" href="https://github.com/kyaulabs/ngen" target="_blank" rel="noopener">View Repository ↗</a>
-            <a class="btn" href="#install">Get the Source ↓</a>
+            <a class="btn btn-primary" href="https://github.com/kyaulabs/ngen" target="_blank" rel="noopener">View Repository <svg class="fa-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="vendor/fontawesome-icons.svg#arrow-up-right-from-square" width="24" height="24"></use></svg></a>
+            <a class="btn" href="#install">Get the Source <svg class="fa-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="vendor/fontawesome-icons.svg#download" width="24" height="24"></use></svg></a>
           </div>
         </div>
       </div>
-      <a class="hero-scroll" href="#vitals" aria-label="Scroll to dashboard"><span class="hero-scroll-arrow" aria-hidden="true">▼</span><span class="hero-scroll-text">SCROLL</span></a>
+      <a class="hero-scroll" href="#vitals" aria-label="Scroll to dashboard"><span class="hero-scroll-arrow" aria-hidden="true"><svg class="fa-icon" viewBox="0 0 24 24" focusable="false"><use href="vendor/fontawesome-icons.svg#chevron-down" width="24" height="24"></use></svg></span><span class="hero-scroll-text">SCROLL</span></a>
     </section>
     <div class="ticker" aria-label="Latest commits"><div class="ticker-label">FEED</div><div class="ticker-viewport"><div class="ticker-track" id="ticker-track"><span class="ticker-item">— awaiting commit feed —</span></div></div></div>
     <section class="section" id="vitals">
@@ -70,8 +73,8 @@
         <div class="core-install-body">
           <div class="pkg-head"><div><h3 class="pkg-name">Get the engine</h3><div class="pkg-role">source installation</div></div><span class="tag">AGPL-3.0</span></div>
           <p class="core-install-note">Clone NGEN with its submodules. This downloads the source; platform prerequisites and build instructions belong to the engine repository.</p>
-          <div class="pkg-installs"><div class="clone-line clone-block"><div class="clone-block-cmds"><span class="clone-row"><span class="clone-prompt" aria-hidden="true">$</span><code class="clone-cmd">git clone --recurse-submodules https://github.com/kyaulabs/ngen.git</code></span></div><button class="clone-copy icon-btn" type="button" aria-label="Copy source clone command"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5 15V6a2 2 0 0 1 2-2h9" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button></div></div>
-          <a class="pkg-cta" href="https://github.com/kyaulabs/ngen" target="_blank" rel="noopener">repository + build documentation ↗</a>
+          <div class="pkg-installs"><div class="clone-line clone-block"><div class="clone-block-cmds"><span class="clone-row"><span class="clone-prompt" aria-hidden="true">$</span><code class="clone-cmd">git clone --recurse-submodules https://github.com/kyaulabs/ngen.git</code></span></div><button class="clone-copy icon-btn" type="button" aria-label="Copy source clone command"><svg class="fa-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="vendor/fontawesome-icons.svg#copy" width="24" height="24"></use></svg></button></div></div>
+          <a class="pkg-cta" href="https://github.com/kyaulabs/ngen" target="_blank" rel="noopener">repository + build documentation <svg class="fa-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="vendor/fontawesome-icons.svg#arrow-up-right-from-square" width="24" height="24"></use></svg></a>
           <p class="empty-note" id="copy-status" role="status"></p>
         </div>
       </div>

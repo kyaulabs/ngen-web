@@ -1,11 +1,11 @@
-// $KYAULabs: server.mjs kyau@aura.kyaulabs 2026/11/15 -0800 Exp $
+// $KYAULabs: server.mjs kyau@aura.kyaulabs 2026/11/16 -0800 Exp $
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, resolve } from 'node:path';
 
 const root = process.cwd();
-const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.ico': 'image/x-icon' };
-const publicFiles = new Set(['/index.html', '/styles.min.css', '/app.min.js', '/space.min.js', '/vendor/d3.min.js']);
+const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.otf': 'font/otf', '.ico': 'image/x-icon' };
+const publicFiles = new Set(['/index.html', '/styles.min.css', '/app.min.js', '/space.min.js', '/vendor/d3.min.js', '/vendor/fontawesome-icons.svg']);
 
 createServer(async (request, response) => {
   try {

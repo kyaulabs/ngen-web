@@ -1,90 +1,82 @@
-NGEN VISUAL IDENTITY 1.3
+NGEN VISUAL IDENTITY 1.4
 KYAU Labs
 
 NGEN is a C++20 game engine for space simulators, with a focus on space MMOs.
-Balanced is the approved visual identity. Its stepped N and paired violet
-wake lines appear in the wordmark and in the standalone icon.
+Balanced is the approved mark: a stepped N with paired violet wakes.
+Revision 1.4 adopts Prism's dark and light reference palettes and typography.
 
 START HERE
 
   guide/ngen-brand-guide.pdf
-      Eleven-page guide to the identity, clear space, sizing, color, type,
-      artwork, and website integration. Editable HTML source sits alongside
-      the PDF. Page PNGs and SVGs are in guide/pages/.
+      Eleven-page identity, clear-space, color, type and implementation guide.
+      Editable HTML is alongside the PDF; page PNG/SVG exports are in pages/.
 
   identity/
-      Combined identity board plus dark and light presentation variants.
-      Each board is available as PNG and SVG.
+      Combined identity board and dark/light variants, in SVG and PNG.
 
   logos/svg/ and logos/png/
-      Integrated NGEN wordmark and descriptor signature. Use the "dark" files
-      on dark surfaces and "light" files on light surfaces. Mono white and
-      black assets are provided for single-color use. The vector lettering is
-      outlined. Transparent PNGs are supplied at 640 and/or 1280 px wide.
+      Outlined wordmark and descriptor signature. Use dark files on dark
+      surfaces and light files on light surfaces. Monochrome white/ink assets
+      are unchanged. Transparent PNGs are 640 and/or 1280 px wide.
 
   icons/
-      Transparent standalone mark, opaque app tile, and rounded favicon.
-      App tile PNGs are 32, 64, 128, 256, 512, and 1024 px. Favicons are
-      available as fixed-theme SVG and PNG, theme-adaptive SVG, and ICO
-      containing 16, 32, and 48 px images for each mode.
+      Transparent marks, opaque app tiles and favicons. App sizes: 32, 64,
+      128, 256, 512 and 1024 px. Favicons include fixed-theme SVG/PNG,
+      a theme-adaptive SVG, and 16/32/48 px ICO frames for each mode.
 
   social/
-      Open Graph cards at 1200 x 630 px, banners at 1500 x 500 px, and
-      circle-safe avatars at 1024 x 1024 px. Use PNG for publishing and SVG
-      for editing or scaling. Choose a dark or light card for each page.
+      Open Graph 1200 x 630, banners 1500 x 500 and avatars 1024 x 1024.
+      Use PNG for publishing; SVG for editing. Select a matching theme.
 
   graphics/
-      Transparent orbital schematic in dark and light SVG and PNG.
+      Transparent orbital schematics, in dark/light SVG and PNG.
 
   web/
-      ngen-theme.css follows the system theme. Set data-theme on the html
-      element to "light" or "dark" to override it. ngen-tokens.json separates
-      base theme colors from the five component material expressions. CSS
-      exposes base colors as --ngen-* and material aliases as --bg-0, --panel,
-      --panel-2, --line and --line-strong. Open palette-preview.html locally to inspect the tokens
-      and try both modes. The palettes/ folder has PNG and SVG swatch sheets.
-      open-graph.example.html is a starting point for sharing metadata.
+      Canonical ngen-tokens.json, reference ngen-theme.css, palette preview,
+      PNG/SVG swatches, sharing-metadata example and self-hosted fonts.
+      CSS follows system preferences unless html data-theme is dark/light.
+      Base colors use --ngen-*; material aliases are --bg-0, --panel,
+      --panel-2, --line and --line-strong. Fonts are Neo Sans Pro and Operator
+      Mono supplied from the user's Prism checkout; embedded notices and
+      applicable font permissions remain separate from the website license.
 
 ASSET USE
 
-  Keep the custom N inside the wordmark. Use the standalone N by itself in
-  favicons, app icons, and avatars. Preserve one N upright of clear space.
-  Measure the recommended minimum widths from the visible artwork.
+  Keep the custom N inside the wordmark and preserve one upright of clear
+  space, measured from visible artwork. Minimums: wordmark 144 px,
+  signature 220 px, standalone N 24 px canvas, favicon 16 px tile.
+  Keep logos proportional, horizontal and unfiltered on quiet fields.
+  Use monochrome for single-color applications. SVG labels require the
+  authoring fonts; PNG/PDF exports remain usable without installed fonts.
 
-  Wordmark       144 px
-  Signature      220 px
-  Standalone N    24 px canvas
-  Favicon         16 px tile
+  Dark materials: #04060C page, 66% #0A101D panel, 55% #10182A header,
+  14% / 30% #7D9BD2 borders, #22D3EE / #A78BFA / #F472B6 accents.
+  Light materials: #EDF0F8 page, 78% white panel, 85% #F4F7FD header,
+  12% / 26% #102A54 borders, #0891B2 / #7C3AED / #DB2777 accents.
+  Alpha affects surfaces, not text. Borders and subtle pigments are
+  decorative; retain readable labels, selected-state cues and bright focus.
+  Use dark ink on light cyan actions and higher-contrast light status text.
+  Guide ratios composite over reference fields, not arbitrary imagery,
+  and are not a full accessibility-conformance claim.
 
-  The SVG favicon follows the system theme where the browser supports it.
-  For an explicit site theme, select the matching fixed-theme favicon.
-  Point Open Graph metadata to one hosted PNG using an absolute URL.
-
-  The dark page, space backdrop, header/footer base and opaque exports use
-  #191919. Panel materials use 70% #191919; secondary/header materials use
-  65% #27303a. Both line aliases use 35% #7899A6. These are background and
-  border alpha, not reduced text or whole-element opacity. surface-alt shares
-  the panel-header base color. Light reference materials remain unchanged.
-  Keep bright focus rings and labeled controls; faint borders are decorative.
-  Guide contrast ratios use alpha composited over the reference page, not
-  arbitrary imagery, and do not establish full accessibility conformance.
+  The adaptive favicon follows system preferences. Select a fixed-theme
+  favicon when needed. Publish Open Graph PNGs at absolute URLs.
 
 REVISION AND EXPORTS
 
-  Revision 1.3 is a user-authorized update of the supplied Graphite 1.2 pack.
-  It refreshes dark materials, swatches, previews, the guide, affected dark
-  presentation artwork and matching raster exports. All original asset paths,
-  logo geometry, accent colors, monochrome artwork and light-specific logo,
-  icon, social and schematic assets are retained. Mixed-mode boards and guide
-  pages show updated dark references; the light swatch sheet changes only its
-  revision label. Light colors and artwork geometry are unchanged.
-  The original supplied archive is not modified. Website and brand versions
-  are independent; the website remains dark-only.
+  Both palettes, colored masters, typography references, swatches, previews,
+  guide and matching exports are refreshed. All original paths, logo
+  geometry and monochrome artwork are preserved. The original supplied
+  Graphite 1.2 archive is untouched. Legacy asset filenames are retained.
+  Website, engine and brand versions are independent; NGEN's active website
+  remains dark-only. Its approved nebula and natural star field are separate
+  from this brand recoloring. UI icons use attributed Font Awesome Free.
 
-  In the website source checkout, npm run build:brand rebuilds reference CSS,
-  the dark swatch SVG, affected PNG/ICO exports, PDF and guide page exports.
-  Inputs are web/ngen-tokens.json, affected SVG masters and the guide HTML.
-  It uses installed Playwright/Chromium, rsvg-convert, pdftocairo and ImageMagick
-  (magick), with Noto Sans and Adwaita Sans/Mono installed to retain the supplied
-  typography. Port 4173 must be free. No new npm dependency or production server
-  is required; ordinary website builds/deployments do not run this command.
+  In the website checkout, edit JSON, affected SVG masters and guide HTML;
+  run npm run build:brand. It rebuilds reference CSS, both swatch SVGs,
+  colored PNG/ICO files at existing dimensions, PDF and guide page exports.
+  Monochrome files are not regenerated. Required tools: Playwright/Chromium,
+  rsvg-convert, pdftocairo and ImageMagick (magick). Provided fonts are used
+  through isolated Fontconfig/cache files; no global font installation is
+  performed. Port 4173 must be free. Ordinary deployments never run this
+  optional command and require no production Node.js server.
