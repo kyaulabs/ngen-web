@@ -31,8 +31,8 @@
   --space-violet: var(--ngen-secondary);
   --bg-0: var(--ngen-bg);
   --bg-1: var(--ngen-surface-alt);
-  /* The stronger Prism reference supersedes the earlier 65% fill cap. */
-  --panel: color-mix(in srgb, var(--ngen-surface) 88%, transparent);
+  /* User-approved translucency; text opacity and Slate fills are unchanged. */
+  --panel: color-mix(in srgb, var(--ngen-surface) 60%, transparent);
   --panel-solid: var(--ngen-surface);
   --panel-2: color-mix(in srgb, var(--ngen-panel-header) 85%, transparent);
   --line: var(--ngen-border);

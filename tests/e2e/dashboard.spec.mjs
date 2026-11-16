@@ -59,7 +59,7 @@ test('uses the Graphite 1.2 page, panel and Slate header colors in dark mode', a
   for (const [selector, expected] of [
     ['body', [32, 33, 36, 255]],
     ['.space-background', [32, 33, 36, 255]],
-    ['#install', [42, 43, 47, 224]],
+    ['#install', [42, 43, 47, 153]],
     ['#install .term-bar', [58, 65, 78, 217]],
   ]) {
     const color = await paintedColor(page.locator(selector));
@@ -105,6 +105,10 @@ test('uses pronounced filled controls and a primary action without losing keyboa
     await expect(control).not.toHaveCSS('border-top-color', 'rgba(0, 0, 0, 0)');
     await expect(control).toHaveCSS('border-top-left-radius', '10px');
   }
+  for (const control of await page.locator('.nav-actions > *, .hero-cta .btn:not(.btn-primary), .hero-chips .chip, .clone-copy').all()) {
+    expect((await paintedColor(control))[3] / 255).toBeCloseTo(0.6, 2);
+    await expect(control).toHaveCSS('opacity', '1');
+  }
   const primary = page.locator('.hero-cta .btn-primary');
   await expect(primary).toHaveCSS('background-image', /^linear-gradient/);
   await expect(primary).toHaveCSS('color', 'rgb(8, 33, 43)');
@@ -136,13 +140,17 @@ test('uses pronounced filled controls and a primary action without losing keyboa
   await expect(page.locator('#item-modal')).toBeHidden();
 });
 
-test('separates solid Graphite panels and Slate titlebars with readable boundaries', async ({ page }) => {
+test('uses 60 percent Graphite panel fills without fading content or changing Slate titlebars', async ({ page }) => {
   await load(page);
   async function checkSurfaces() {
-    for (const surface of await page.locator('.panel:visible, .term-bar:visible, .tracker-tabs:visible, .item-fields:visible, .contrib-stat:visible').all()) {
-      const alpha = (await paintedColor(surface))[3] / 255;
-      expect(alpha).toBeGreaterThanOrEqual(0.85 - 1 / 255);
-      await expect(surface).toHaveCSS('opacity', '1');
+    for (const [selector, expected] of [
+      ['.panel:visible', 0.6],
+      ['.term-bar:visible, .tracker-tabs:visible, .item-fields:visible, .contrib-stat:visible', 0.85],
+    ]) {
+      for (const surface of await page.locator(selector).all()) {
+        expect((await paintedColor(surface))[3] / 255).toBeCloseTo(expected, 2);
+        await expect(surface).toHaveCSS('opacity', '1');
+      }
     }
     for (const panel of await page.locator('.panel:visible').all()) {
       const border = await paintedColor(panel, 'borderTopColor');
