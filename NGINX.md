@@ -15,7 +15,7 @@ npm ci --include=dev &&
 npm run build
 ```
 
-`npm run build` uses **UglifyJS** for `space.min.js` and `app.min.js`, and **Sass** to compile `styles.scss` into compressed `styles.min.css`. The Sass entry point uses the supplied brand’s dark palette, so the dark-only page needs only one stylesheet. D3 is already vendored and minified.
+`npm run build` uses **UglifyJS** for `space.min.js` and `app.min.js`, and **Sass** to compile `styles.scss` into compressed `styles.min.css`. The Sass entry point uses the supplied brand’s dark palette, so the dark-only page needs only one stylesheet. D3 is already vendored and minified. Font Awesome UI symbols and the supplied Prism fonts are self-hosted static assets.
 
 Generated JavaScript and CSS are ignored by Git. Build after every clone or pull, and stop if installation or compilation fails. `--include=dev` is required because the minifiers are development dependencies, including when `NODE_ENV=production` is set. nginx has no source fallback: missing build outputs return `404`. Sass compilation failures exit nonzero without generating an error stylesheet.
 
@@ -24,7 +24,7 @@ nginx needs read access to the public files and traversal permission on every pa
 ```sh
 cd /nginx/git/ngen-web
 chmod 0755 . vendor
-chmod 0644 index.html styles.min.css space.min.js app.min.js vendor/d3.min.js
+chmod 0644 index.html styles.min.css space.min.js app.min.js vendor/d3.min.js vendor/fontawesome-icons.svg vendor/fontawesome-LICENSE.txt
 find assets brand -type d -exec chmod 0755 {} +
 find assets brand -type f -exec chmod 0644 {} +
 ```
@@ -34,6 +34,8 @@ Keep the checkout writable only by the deployment account. nginx does not need w
 ## Configure nginx
 
 Replace `ngen.example.com` with your hostname. Put this complete `server` block in a file included by nginx’s `http` context, using your distribution’s normal virtual-host layout. The root is `/nginx/git/ngen-web`; adjust the MIME include path if your nginx installation uses a different location. Replace any existing generic file-serving or application-proxy rules for this virtual host with the allowlist below.
+
+**Upgrading to 0.1.8:** allow `vendor/fontawesome-icons.svg` and add the font MIME location below, then validate/reload nginx. A pull/build alone does not update nginx rules.
 
 **Upgrading the previous clone-only setup:** remove its three exact `.min.js` source aliases and replace the virtual-host rules with this block. Old exact aliases override regex rules, and the previous configuration does not allow `styles.min.css`. The dark-only site also removes `theme.min.js`; remove its old allowance and unused generated file when upgrading. Validate and reload nginx after changing the configuration.
 
@@ -64,13 +66,19 @@ server {
         try_files /index.html =404;
     }
 
-    location ~ ^/(?:index\.html|styles\.min\.css|(?:space|app)\.min\.js|vendor/d3\.min\.js)$ {
+    location ~ ^/(?:index\.html|styles\.min\.css|(?:space|app)\.min\.js|vendor/(?:d3\.min\.js|fontawesome-icons\.svg))$ {
         try_files $uri =404;
     }
 
     # Brand tokens are bundled by Sass, not served as unminified CSS.
     location ~ ^/(?:assets|brand)/.*\.(?:scss|css|js)$ {
         return 404;
+    }
+
+    # Explicit font MIME mappings, independent of distribution mime.types.
+    location ~ ^/brand/web/fonts/[A-Za-z0-9-]+\.(?:ttf|otf)$ {
+        types { font/ttf ttf; font/otf otf; }
+        try_files $uri =404;
     }
 
     location ~ ^/(?:assets|brand)/ {
@@ -151,7 +159,7 @@ curl -I https://ngen.example.com/.git/HEAD
 curl -I https://ngen.example.com/not-a-route
 ```
 
-Expect `200` with appropriate HTML, JavaScript, CSS, and SVG content types for the first four requests, and `404` for the last six. For an internal HTTP check, use the internal address and the configured `Host` header instead.
+Expect `200` with appropriate HTML, JavaScript, CSS, and SVG content types for the first four requests, and `404` for the last six. Also check `/vendor/fontawesome-icons.svg` (`image/svg+xml`), `/brand/web/fonts/NeoSansPro-Regular.ttf` (`font/ttf`) and `/brand/web/fonts/OperatorMonoLigNerdFont-Regular.otf` (`font/otf`): all must return `200`. For an internal HTTP check, use the internal address and the configured `Host` header instead.
 
 Finally, open the HTTPS site and check the hero/background animation, source-command copy button, and dashboard. Confirm the page stays dark even with a light OS preference or an old saved light preference. A GitHub rate limit can legitimately produce snapshot/unavailable-feed states; missing local assets or JavaScript console errors are deployment failures. No process should need to listen on port 4173 in production.
 

@@ -88,4 +88,4 @@ Node.js/npm are needed during deployment to build assets, not to serve requests.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md), the [Code of Conduct](CODE_OF_CONDUCT.md), and [SECURITY.md](SECURITY.md).
 
-The website is licensed under [AGPL-3.0](LICENSE). Its dashboard was adapted from the KYAU Labs Prism website; the NGEN identity assets are included in `brand/`.
+The website is licensed under [AGPL-3.0](LICENSE). Its dashboard was adapted from the KYAU Labs Prism website; the NGEN identity assets are included in `brand/`. UI icons use [Font Awesome Free 7.3.1](vendor/fontawesome-LICENSE.txt) (SVGs: CC BY 4.0). The supplied Prism fonts retain their embedded licensing terms.

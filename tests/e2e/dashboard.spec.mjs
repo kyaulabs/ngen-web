@@ -1,4 +1,4 @@
-// $KYAULabs: dashboard.spec.mjs kyau@aura.kyaulabs 2026/11/15 -0800 Exp $
+// $KYAULabs: dashboard.spec.mjs kyau@aura.kyaulabs 2026/11/16 -0800 Exp $
 import { readFile } from 'node:fs/promises';
 import { test, expect } from '@playwright/test';
 import { controlNetwork } from '../network.mjs';
@@ -9,6 +9,7 @@ test.beforeEach(async ({ page }) => { await controlNetwork(page); });
 async function load(page) {
   await page.goto('/');
   await expect(page.locator('body')).toHaveClass(/loaded/);
+  await page.evaluate(() => document.fonts.ready);
 }
 
 async function paintedColor(locator, property = 'backgroundColor') {
@@ -48,31 +49,163 @@ test('preserves the dashboard with NGEN identity, live charts and an honest game
   expect(errors).toEqual([]);
 });
 
-test('uses the charcoal page, translucent panels and faint borders throughout dark mode', async ({ page }) => {
+for (const [width, height, scale] of [[1920, 1039, 2], [2560, 1385, 1.5], [3440, 1440, 1]]) {
+  test(`fits hero actions at ${width}×${height} CSS pixels and ${scale}× device scale`, async ({ browser }) => {
+    const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: scale, reducedMotion: 'reduce' });
+    try {
+      const page = await context.newPage();
+      await controlNetwork(page);
+      await page.goto('http://127.0.0.1:4173/');
+      await expect(page.locator('body')).toHaveClass(/loaded/);
+      await page.evaluate(() => document.fonts.ready);
+      expect(await page.evaluate(() => devicePixelRatio)).toBe(scale);
+      for (const selector of ['.hero-cta', '.hero-scroll']) {
+        const box = await page.locator(selector).boundingBox();
+        expect(box.y + box.height, selector).toBeLessThanOrEqual(height);
+      }
+      expect((await page.locator('.orbital-system').boundingBox()).width).toBeCloseTo(520, 0);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+    } finally { await context.close(); }
+  });
+}
+
+test('keeps hero actions reachable in short and narrow CSS viewports', async ({ page }) => {
+  for (const [width, height] of [[1366, 768], [390, 844], [320, 844]]) {
+    await page.setViewportSize({ width, height });
+    await load(page);
+    await page.evaluate(() => document.fonts.ready);
+    const action = page.locator('.hero-cta a').last();
+    await action.scrollIntoViewIfNeeded();
+    const box = await action.boundingBox();
+    expect(box.y).toBeGreaterThanOrEqual(0);
+    expect(box.y + box.height).toBeLessThanOrEqual(height);
+    expect(await action.evaluate((element) => {
+      const box = element.getBoundingClientRect();
+      return element.contains(document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2));
+    })).toBe(true);
+  }
+});
+
+test('preserves Prism typography and record casing without framing profile hints', async ({ page }) => {
+  await load(page);
+  const title = page.locator('#issues-list .t-title').first();
+  await expect(title).toHaveText('Review orbital navigation');
+  await expect(title).toHaveCSS('text-transform', 'none');
+  await expect(title).toHaveCSS('font-weight', '400');
+  await expect(title).toHaveCSS('letter-spacing', 'normal');
+  await expect(title).toHaveCSS('font-family', /Neo Sans Pro/);
+  await expect(page.locator('#issues-list .num').first()).toHaveCSS('font-family', /Operator Mono/);
+  const hint = page.locator('.contrib-card .pkg-cta').first();
+  await expect(hint).toHaveCSS('padding', '0px');
+  await expect(hint).toHaveCSS('border-top-width', '0px');
+  await expect(hint).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await page.evaluate(() => document.fonts.ready);
+  expect(await page.evaluate(() => {
+    const loaded = [...document.fonts].filter((face) => face.status === 'loaded');
+    return ['Neo Sans Pro', 'Operator Mono'].map((family) => loaded.some((face) => face.family.includes(family)));
+  })).toEqual([true, true]);
+  for (const [file, type] of [['NeoSansPro-Regular.ttf', 'font/ttf'], ['OperatorMonoLigNerdFont-Regular.otf', 'font/otf']]) {
+    const response = await page.request.get(`/brand/web/fonts/${file}`);
+    expect(response.status()).toBe(200);
+    expect(response.headers()['content-type']).toBe(type);
+  }
+});
+
+test('uses Prism colors and translucent materials throughout dark mode', async ({ page }) => {
   await load(page);
   const tokens = await page.locator('html').evaluate((element) => {
     const style = getComputedStyle(element);
     return ['bg', 'surface', 'panel-header', 'surface-alt'].map((key) => style.getPropertyValue(`--ngen-${key}`).trim().toUpperCase());
   });
-  expect(tokens).toEqual(['#191919', '#191919', '#27303A', '#27303A']);
-  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#191919');
+  expect(tokens).toEqual(['#04060C', '#0A101D', '#10182A', '#10182A']);
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#04060c');
   for (const [selector, expected] of [
-    ['body', [25, 25, 25, 255]],
-    ['.space-background', [25, 25, 25, 255]],
-    ['#install', [25, 25, 25, 179]],
-    ['#install .term-bar', [39, 48, 58, 166]],
-    ['.footer', [25, 25, 25, 255]],
+    ['body', [4, 6, 12, 255]],
+    ['.space-background', [4, 6, 12, 255]],
+    ['#install', [10, 16, 29, 168]],
+    ['#install .term-bar', [16, 24, 42, 140]],
+    ['.footer', [4, 6, 12, 255]],
   ]) {
     const color = await paintedColor(page.locator(selector));
     for (let channel = 0; channel < 4; channel++) expect(Math.abs(color[channel] - expected[channel]), selector).toBeLessThanOrEqual(2);
   }
-  for (const selector of ['#motion-toggle', '.nav-gh', '#install', '.footer']) {
+  for (const selector of ['#motion-toggle', '#install', '.footer']) {
     const border = await paintedColor(page.locator(selector), 'borderTopColor');
-    for (const [channel, expected] of [120, 153, 166, 89].entries()) expect(Math.abs(border[channel] - expected)).toBeLessThanOrEqual(2);
+    // Low-alpha canvas unpremultiplication quantizes RGB more than alpha.
+    for (const [channel, expected] of [125, 155, 210, 36].entries()) expect(Math.abs(border[channel] - expected), selector).toBeLessThanOrEqual(channel === 3 ? 1 : 4);
   }
 });
 
-test('renders the brand reference materials consistently while retaining its light palette', async ({ page }) => {
+test('keeps scrolled header actions unfilled until hovered', async ({ page }) => {
+  await load(page);
+  await page.locator('#vitals').scrollIntoViewIfNeeded();
+  await expect(page.locator('.nav')).toHaveClass(/scrolled/);
+  for (const action of await page.locator('.nav-actions > *').all()) {
+    await page.mouse.move(0, 100);
+    await expect.poll(async () => (await paintedColor(action))[3]).toBe(0);
+    await expect.poll(async () => (await paintedColor(action, 'borderTopColor'))[3]).toBe(0);
+    await action.hover();
+    await expect.poll(async () => (await paintedColor(action))[3]).toBeGreaterThan(0);
+    await expect.poll(async () => (await paintedColor(action, 'borderTopColor'))[3]).toBeGreaterThan(0);
+  }
+  await page.mouse.move(0, 100);
+  await page.locator('#motion-toggle').focus();
+  await expect(page.locator('#motion-toggle')).toHaveCSS('outline-width', '2px');
+});
+
+test('reveals Prism panel borders and the top hairline on hover', async ({ page }) => {
+  await load(page);
+  const panel = page.locator('#install');
+  await panel.scrollIntoViewIfNeeded();
+  await page.mouse.move(0, 100);
+  expect((await paintedColor(panel, 'borderTopColor'))[3]).toBe(36);
+  expect(await panel.evaluate((element) => getComputedStyle(element, '::before').opacity)).toBe('0');
+  await expect(panel).not.toHaveCSS('box-shadow', /inset/);
+  await panel.hover();
+  expect((await paintedColor(panel, 'borderTopColor'))[3]).toBe(77);
+  await expect.poll(() => panel.evaluate((element) => getComputedStyle(element, '::before').opacity)).toBe('0.85');
+});
+
+test('renders local Font Awesome UI icons while retaining accessible control names', async ({ page }) => {
+  await load(page);
+  const sprite = await page.request.get('/vendor/fontawesome-icons.svg');
+  expect(sprite.status()).toBe(200);
+  expect(sprite.headers()['content-type']).toContain('image/svg+xml');
+  for (const selector of ['#motion-toggle svg', '.nav-gh svg', '.hero-cta svg', '.clone-copy svg', '.kpi-label svg', '.branch-head svg', '.release-chevron']) {
+    const icon = page.locator(selector).first();
+    await expect(icon).toHaveAttribute('aria-hidden', 'true');
+    await expect(icon.locator('use')).toHaveAttribute('href', /^vendor\/fontawesome-icons\.svg#/);
+    await expect.poll(() => icon.locator('use').evaluate((element) => element.getBBox().width)).toBeGreaterThan(0);
+  }
+  await expect(page.getByRole('button', { name: /background animation/ })).toHaveCount(1);
+  await expect(page.getByRole('button', { name: 'Copy source clone command' })).toHaveCount(1);
+});
+
+test('uses traffic-light close controls with visible focus and a full hit target', async ({ page }) => {
+  await load(page);
+  for (const trigger of ['#issues-list .term-open', '.contrib-card']) {
+    await page.locator(trigger).first().focus();
+    await page.locator(trigger).first().press('Enter');
+    const close = page.locator('.pkg-modal-overlay.on .term-dot-close');
+    await expect(close).toBeFocused();
+    await expect(close).toHaveCSS('outline-width', '2px');
+    await expect(close).toHaveCSS('border-top-width', '0px');
+    await expect(close).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+    const box = await close.boundingBox();
+    expect(box.width).toBeGreaterThanOrEqual(24);
+    expect(box.height).toBeGreaterThanOrEqual(24);
+    expect(await close.evaluate((element) => getComputedStyle(element, '::before').backgroundColor)).toBe('rgb(251, 113, 133)');
+    await close.press('Tab');
+    await page.mouse.move(0, 0);
+    await expect(close.locator('svg')).toHaveCSS('opacity', '0');
+    await close.hover();
+    await expect(close.locator('svg')).toHaveCSS('opacity', '1');
+    await close.click();
+    await expect(page.locator('.pkg-modal-overlay.on')).toHaveCount(0);
+  }
+});
+
+test('renders both Prism-derived brand palettes with readable action labels', async ({ page }) => {
   // Reference sources are not application assets; supply their actual bytes at the file boundary.
   await page.route(/\/brand\/web\/(?:ngen-theme\.css|palette-preview\.js)$/, async (route) => {
     const filename = new URL(route.request().url()).pathname.endsWith('.css') ? 'ngen-theme.css' : 'palette-preview.js';
@@ -80,28 +213,33 @@ test('renders the brand reference materials consistently while retaining its lig
   });
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.goto('/brand/web/palette-preview.html');
-  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(25, 25, 25)');
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(4, 6, 12)');
   await page.emulateMedia({ colorScheme: 'light' });
-  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(243, 243, 244)');
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(237, 240, 248)');
   await page.locator('#theme').selectOption('dark');
   const tokens = JSON.parse(await readFile('brand/web/ngen-tokens.json', 'utf8'));
-  expect(tokens.version).toBe('1.3');
+  expect(tokens.version).toBe('1.4');
   for (const [selector, color] of [
-    ['body', [25, 25, 25, 255]],
-    ['.panel', [25, 25, 25, 179]],
-    ['.panel-title', [39, 48, 58, 166]],
+    ['body', [4, 6, 12, 255]],
+    ['.panel', [10, 16, 29, 168]],
+    ['.panel-title', [16, 24, 42, 140]],
   ]) {
     const rendered = await paintedColor(page.locator(selector));
     for (const [channel, expected] of color.entries()) expect(Math.abs(rendered[channel] - expected)).toBeLessThanOrEqual(2);
   }
-  expect((await paintedColor(page.locator('.panel'), 'borderTopColor'))[3]).toBe(89);
-  expect((await paintedColor(page.locator('#theme'), 'borderTopColor'))[3]).toBe(89);
+  await expect.poll(async () => (await paintedColor(page.locator('.panel'), 'borderTopColor'))[3]).toBe(36);
+  await expect.poll(async () => (await paintedColor(page.locator('#theme'), 'borderTopColor'))[3]).toBe(77);
   await page.locator('#theme').selectOption('light');
   await page.emulateMedia({ colorScheme: 'dark' });
-  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(243, 243, 244)');
-  await expect(page.locator('.panel')).toHaveCSS('background-color', 'rgb(247, 247, 248)');
-  await expect(page.locator('.panel-title')).toHaveCSS('background-color', 'rgb(231, 235, 244)');
-  await expect(page.locator('.panel')).toHaveCSS('border-top-color', 'rgb(184, 210, 220)');
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(237, 240, 248)');
+  expect((await paintedColor(page.locator('.panel')))[3]).toBe(199);
+  expect((await paintedColor(page.locator('.panel-title')))[3]).toBe(217);
+  await expect.poll(async () => (await paintedColor(page.locator('.panel'), 'borderTopColor'))[3]).toBe(31);
+  await expect(page.locator('body')).toHaveCSS('font-family', /Neo Sans Pro/);
+  for (const mode of ['dark', 'light']) {
+    await page.locator('#theme').selectOption(mode);
+    expect(contrastRatio(await paintedColor(page.locator('.action'), 'color'), await paintedColor(page.locator('.action')))).toBeGreaterThanOrEqual(4.5);
+  }
 });
 
 test('keeps the orbital fallback label-free and transparent without JavaScript', async ({ browser }) => {
@@ -127,54 +265,52 @@ test('keeps the orbital fallback label-free and transparent without JavaScript',
   }
 });
 
-test('uses pronounced filled controls and a primary action without losing keyboard focus', async ({ page }) => {
+test('restores compact reference tabs, copy actions, row hover and solid tooltips', async ({ page }) => {
   await load(page);
-  const live = page.locator('#feed-badge');
-  const badgeBox = await live.boundingBox();
+  const tab = page.locator('#issues-tabs .pkg-tab').first();
+  await expect(tab).toHaveCSS('font-family', /Operator Mono/);
+  await expect(tab).toHaveCSS('border-bottom-width', '2px');
+  await expect(tab).toHaveCSS('border-bottom-color', 'rgb(34, 211, 238)');
+  const copy = page.locator('.clone-copy');
+  const box = await copy.boundingBox();
+  expect(box.width).toBe(26);
+  expect(box.height).toBe(26);
+  await expect(copy).toHaveCSS('border-top-left-radius', '6px');
+  expect((await paintedColor(page.locator('.chart-tip')))[3]).toBe(255);
+  const row = page.locator('#issues-list .term-open').first();
+  await row.hover();
+  await expect.poll(async () => (await paintedColor(row))[3]).toBe(26);
+});
+
+test('retains Prism component-specific controls and a prominent primary action', async ({ page }) => {
+  await load(page);
+  const badgeBox = await page.locator('#feed-badge').boundingBox();
   for (const selector of ['#motion-toggle', '.nav-gh']) {
     const box = await page.locator(selector).boundingBox();
     expect(box.height).toBeCloseTo(badgeBox.height, 1);
-    if (selector === '.nav-gh') expect(box.width).toBeCloseTo(badgeBox.width, 1);
+    expect(box.width).toBeGreaterThanOrEqual(24);
   }
-  const controls = page.locator('.nav-actions > *, .hero-cta .btn:not(.btn-primary), .hero-chips .chip, .clone-copy, .release-toggle, .release-tag, .branch-sha, .pkg-tab');
-  for (const control of await controls.all()) {
-    expect((await paintedColor(control))[3]).toBeGreaterThan(25);
-    await expect(control).not.toHaveCSS('border-top-color', 'rgba(0, 0, 0, 0)');
-    await expect(control).toHaveCSS('border-top-left-radius', '10px');
-  }
-  for (const control of await page.locator('.nav-actions > *, .hero-cta .btn:not(.btn-primary), .hero-chips .chip, .clone-copy').all()) {
-    expect((await paintedColor(control))[3] / 255).toBeCloseTo(0.7, 2);
+  for (const control of await page.locator('.hero-cta .btn:not(.btn-primary), .hero-chips .chip, .clone-copy').all()) {
+    expect((await paintedColor(control))[3] / 255).toBeCloseTo(0.66, 2);
     await expect(control).toHaveCSS('opacity', '1');
+    const radius = await control.evaluate((element) => element.classList.contains('clone-copy') ? '6px' : '10px');
+    await expect(control).toHaveCSS('border-top-left-radius', radius);
   }
   const primary = page.locator('.hero-cta .btn-primary');
   await expect(primary).toHaveCSS('background-image', /^linear-gradient/);
-  await expect(primary).toHaveCSS('color', 'rgb(8, 33, 43)');
+  await expect(primary).toHaveCSS('color', 'rgb(4, 18, 26)');
   expect((await primary.boundingBox()).height).toBeGreaterThanOrEqual(44);
-  await primary.hover();
-  await expect(page.locator('.ticker')).toHaveClass(/docked/);
-  await expect(page.locator('.ticker')).toHaveCSS('transform', 'none');
-  const actionBox = await primary.boundingBox();
-  const tickerBox = await page.locator('.ticker').boundingBox();
-  expect(actionBox.y + actionBox.height).toBeLessThanOrEqual(tickerBox.y);
+  await expect(page.locator('.release-tag').first()).toHaveCSS('background-image', /^linear-gradient/);
+  await expect(page.locator('.release-tag').first()).toHaveCSS('border-top-left-radius', '7px');
+  await expect(page.locator('.release-toggle').first()).toHaveCSS('width', '30px');
+  await expect(page.locator('.branch-sha').first()).toHaveCSS('text-transform', 'none');
   const pause = page.locator('#motion-toggle');
   await pause.hover();
-  await expect(pause).toHaveCSS('border-top-color', 'rgb(99, 221, 248)');
-  expect((await paintedColor(pause))[3]).toBeGreaterThan(25);
+  await expect(pause).toHaveCSS('border-top-color', 'rgb(34, 211, 238)');
   await page.mouse.move(0, 0);
-  await pause.focus();
+  await pause.press('Space');
   await expect(pause).toHaveCSS('outline-style', 'solid');
   await expect(pause).toHaveCSS('outline-width', '2px');
-  expect((await paintedColor(pause, 'borderTopColor'))[3]).toBeCloseTo(89, 0);
-  await page.locator('#issues-list .term-open').first().click();
-  const close = page.getByRole('button', { name: 'Close issue details' });
-  expect((await paintedColor(close))[3]).toBeGreaterThan(25);
-  await expect(close).toHaveCSS('border-top-left-radius', '10px');
-  await expect(close.locator('svg')).toHaveCSS('opacity', '1');
-  const box = await close.boundingBox();
-  expect(box.width).toBeGreaterThanOrEqual(24);
-  expect(box.height).toBeGreaterThanOrEqual(24);
-  await close.click();
-  await expect(page.locator('#item-modal')).toBeHidden();
 });
 
 test('fits the header motion button to its icon in both playback states', async ({ page }) => {
@@ -206,12 +342,13 @@ test('fits the header motion button to its icon in both playback states', async 
   }
 });
 
-test('uses 70 percent panel and 65 percent header fills without fading content', async ({ page }) => {
+test('uses Prism translucent panels, opaque dialogs and unfaded content', async ({ page }) => {
   await load(page);
   async function checkSurfaces() {
     for (const [selector, expected] of [
-      ['.panel:visible', 0.7],
-      ['.term-bar:visible, .tracker-tabs:visible, .item-fields:visible, .contrib-stat:visible', 0.65],
+      ['.panel:visible:not(.pkg-modal)', 0.66],
+      ['.pkg-modal:visible', 1],
+      ['.term-bar:visible, .tracker-tabs:visible, .item-fields:visible, .contrib-stat:visible', 0.55],
     ]) {
       for (const surface of await page.locator(selector).all()) {
         expect((await paintedColor(surface))[3] / 255).toBeCloseTo(expected, 2);
@@ -220,7 +357,8 @@ test('uses 70 percent panel and 65 percent header fills without fading content',
     }
     for (const panel of await page.locator('.panel:visible').all()) {
       const border = await paintedColor(panel, 'borderTopColor');
-      expect(border[3] / 255).toBeCloseTo(0.35, 2); // decorative boundary, not a focus indicator
+      const opacity = await panel.evaluate((element) => element.matches(':hover') ? 0.30 : 0.14);
+      expect(border[3] / 255).toBeCloseTo(opacity, 2); // decorative boundary, not a focus indicator
     }
   }
   await checkSurfaces();
@@ -280,7 +418,7 @@ test('ignores saved light mode and system color preferences without exposing a t
   await load(page);
   await expect(page.locator('html')).toHaveCSS('color-scheme', 'dark');
   await expect(page.locator('#theme-toggle')).toHaveCount(0);
-  await expect(page.locator('body')).toHaveCSS('color', 'rgb(221, 243, 248)');
+  await expect(page.locator('body')).toHaveCSS('color', 'rgb(234, 242, 255)');
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.reload();
   await expect(page.locator('body')).toHaveClass(/loaded/);
@@ -321,8 +459,8 @@ test('keeps viewport-sized space behind the dashboard with an opaque footer', as
     heading: getComputedStyle(document.querySelector('#activity h2')).color,
     panelText: getComputedStyle(document.querySelector('#activity .panel')).color,
   }));
-  expect(colors.heading).toBe('rgb(221, 243, 248)');
-  expect(colors.panelText).toBe('rgb(221, 243, 248)');
+  expect(colors.heading).toBe('rgb(234, 242, 255)');
+  expect(colors.panelText).toBe('rgb(234, 242, 255)');
   expect((await paintedColor(page.locator('.footer')))[3]).toBe(255);
   await page.locator('.footer').scrollIntoViewIfNeeded();
   expect(await background.boundingBox()).toEqual(original);
