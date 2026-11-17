@@ -40,7 +40,9 @@ for (const capture of captures) {
 				await page.locator(capture.readySelector).waitFor({state: 'visible'});
 			}
 			await page.evaluate(() => document.fonts.ready);
-			if (capture.captureSelector) await page.locator(capture.captureSelector).scrollIntoViewIfNeeded();
+			if (capture.captureSelector && await page.locator(capture.captureSelector).isVisible()) {
+				await page.locator(capture.captureSelector).scrollIntoViewIfNeeded();
+			}
 			await applyVisualReviewActions(page, capture.actions);
 			assertCaptureOrigin(page.url(), capture.url);
 			await publishVisualReviewEvidence(page, capture, {

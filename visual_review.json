@@ -35,6 +35,53 @@
         { "id": "dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": "#branches .sec-head" }] },
         { "id": "offline-dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": "#branches .sec-head" }] }
       ]
+    },
+    {
+      "id": "footer-links",
+      "path": "/",
+      "readySelector": "body.loaded",
+      "captureSelector": ".footer-grid",
+      "states": [
+        { "id": "dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": ".footer-mark" }] },
+        { "id": "link-hover-dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": ".footer-meta p:first-child a" }] }
+      ]
+    },
+    {
+      "id": "ticker-links",
+      "path": "/",
+      "readySelector": "body.loaded",
+      "captureSelector": ".ticker",
+      "states": [
+        { "id": "dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": ".ticker-label" }] }
+      ]
+    },
+    {
+      "id": "contributor-links",
+      "path": "/",
+      "readySelector": "body.loaded",
+      "captureSelector": ".contrib-commits",
+      "states": [
+        { "id": "dark", "colorScheme": "dark", "actions": [{ "type": "click", "selector": ".contrib-card" }, { "type": "wait-for-selector", "selector": ".contrib-commit" }, { "type": "hover", "selector": ".contrib-modal .pkg-modal-h:nth-of-type(2)" }] },
+        { "id": "commit-hover-dark", "colorScheme": "dark", "actions": [{ "type": "click", "selector": ".contrib-card" }, { "type": "wait-for-selector", "selector": ".contrib-commit" }, { "type": "hover", "selector": ".contrib-commit" }] }
+      ]
+    },
+    {
+      "id": "contributors",
+      "path": "/",
+      "readySelector": "body.loaded",
+      "captureSelector": "#contributors",
+      "states": [
+        { "id": "dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": "#contributors .sec-head" }] }
+      ]
+    },
+    {
+      "id": "footer-notice",
+      "path": "/",
+      "readySelector": "body.loaded",
+      "captureSelector": ".footer-legal",
+      "states": [
+        { "id": "dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": ".footer-legal" }] }
+      ]
     }
   ]
 }

@@ -45,8 +45,75 @@ test('preserves the dashboard with NGEN identity, live charts and an honest game
   await expect(page.locator('#chart-langs svg')).toHaveCount(1);
   await expect(page.locator('rect.day')).toHaveCount(364);
   await expect(page.locator('#games')).toContainText('No games announced yet');
-  await expect(page.locator('a[href*="github.com/kyaulabs/prism"]')).toHaveCount(1); // attribution only
+  await expect(page.locator('.footer-legal')).not.toContainText('Adapted from');
+  await expect(page.locator('.footer-legal')).toContainText('No cookies or tracking.');
+  await expect(page.locator('.footer-line')).toContainText('Licensed AGPL-3.0.');
+  await expect(page.locator('a[href*="github.com/kyaulabs/prism"]')).toHaveCount(0);
   expect(errors).toEqual([]);
+});
+
+test('sizes and aligns the profile chevron like Prism punctuation', async ({ page }) => {
+  await load(page);
+  const metrics = await page.locator('.contrib-card .pkg-cta').first().evaluate((hint) => {
+    const context = document.createElement('canvas').getContext('2d');
+    context.font = getComputedStyle(hint).font;
+    const text = context.measureText('PROFILE');
+    const reference = context.measureText('»');
+    const range = document.createRange();
+    range.selectNodeContents(hint.firstChild);
+    const baseline = range.getBoundingClientRect().top + text.fontBoundingBoxAscent;
+    const svg = hint.querySelector('svg');
+    const box = svg.getBBox();
+    const matrix = svg.getScreenCTM();
+    const top = new DOMPoint(box.x, box.y).matrixTransform(matrix).y;
+    const bottom = new DOMPoint(box.x, box.y + box.height).matrixTransform(matrix).y;
+    return {
+      referenceHeight: reference.actualBoundingBoxAscent + reference.actualBoundingBoxDescent,
+      referenceCenter: baseline + (reference.actualBoundingBoxDescent - reference.actualBoundingBoxAscent) / 2,
+      iconHeight: bottom - top,
+      iconCenter: (top + bottom) / 2,
+    };
+  });
+  expect(metrics.iconHeight, JSON.stringify(metrics)).toBeLessThanOrEqual(metrics.referenceHeight + 1);
+  expect(metrics.iconHeight).toBeGreaterThanOrEqual(metrics.referenceHeight - 1);
+  expect(Math.abs(metrics.iconCenter - metrics.referenceCenter), JSON.stringify(metrics)).toBeLessThanOrEqual(1);
+});
+
+test('darkens primary text by eight percent without changing neutral links', async ({ page }) => {
+  await load(page);
+  expect(await paintedColor(page.locator('body'), 'color')).toEqual([215, 223, 235, 255]);
+  await expect(page.locator('.branch-meta a').first()).toHaveCSS('color', 'rgb(164, 181, 207)');
+});
+
+test('preserves Prism neutral link hierarchy without whitening links or dimming metadata below base contrast', async ({ page }) => {
+  await load(page);
+  const pairs = [
+    ['.branch-meta a', '.branch-meta'],
+    ['.footer-meta a', '.footer-meta'],
+    ['.ticker-item', '.ticker-item .ago'],
+  ];
+  await page.locator('.contrib-card').first().click();
+  await expect(page.locator('.contrib-commit').first()).toBeVisible();
+  await page.mouse.move(0, 0);
+  pairs.push(['.contrib-commit .cmsg', '.contrib-commit .ago']);
+  for (const [linkSelector, metadataSelector] of pairs) {
+    const link = await paintedColor(page.locator(linkSelector).first(), 'color');
+    const metadata = await paintedColor(page.locator(metadataSelector).first(), 'color');
+    expect(link, linkSelector).toEqual([164, 181, 207, 255]); // Prism --ink-1, unchanged.
+    expect(metadata.slice(0, 3).every((channel, index) => channel < link[index]), metadataSelector).toBe(true);
+    expect(contrastRatio(link, metadata), metadataSelector).toBeGreaterThan(1.5);
+    for (const base of [[4, 6, 12], [10, 16, 29], [16, 24, 42]]) {
+      expect(contrastRatio(metadata, base), metadataSelector).toBeGreaterThanOrEqual(4.5);
+    }
+  }
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.branch-sha').first()).toHaveCSS('color', 'rgb(34, 211, 238)');
+  await expect(page.locator('.footer-line a')).toHaveCSS('color', 'rgb(34, 211, 238)');
+  const footerLink = page.locator('.footer-meta a').first();
+  await footerLink.hover();
+  await expect(footerLink).toHaveCSS('color', 'rgb(34, 211, 238)');
+  await footerLink.focus();
+  await expect(footerLink).toHaveCSS('outline-width', '2px');
 });
 
 for (const width of [1920, 390, 320]) {
@@ -442,7 +509,7 @@ test('ignores saved light mode and system color preferences without exposing a t
   await load(page);
   await expect(page.locator('html')).toHaveCSS('color-scheme', 'dark');
   await expect(page.locator('#theme-toggle')).toHaveCount(0);
-  await expect(page.locator('body')).toHaveCSS('color', 'rgb(234, 242, 255)');
+  expect(await paintedColor(page.locator('body'), 'color')).toEqual([215, 223, 235, 255]);
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.reload();
   await expect(page.locator('body')).toHaveClass(/loaded/);
@@ -479,12 +546,8 @@ test('keeps viewport-sized space behind the dashboard with an opaque footer', as
   expect(await background.boundingBox()).toEqual(original);
   await expect(page.locator('.nav')).not.toHaveClass(/over-hero/);
   await expect(page.locator('.nav .brand-mark')).toHaveAttribute('src', 'brand/logos/svg/ngen-wordmark-dark.svg');
-  const colors = await page.evaluate(() => ({
-    heading: getComputedStyle(document.querySelector('#activity h2')).color,
-    panelText: getComputedStyle(document.querySelector('#activity .panel')).color,
-  }));
-  expect(colors.heading).toBe('rgb(234, 242, 255)');
-  expect(colors.panelText).toBe('rgb(234, 242, 255)');
+  expect(await paintedColor(page.locator('#activity h2'), 'color')).toEqual([215, 223, 235, 255]);
+  expect(await paintedColor(page.locator('#activity .panel'), 'color')).toEqual([215, 223, 235, 255]);
   expect((await paintedColor(page.locator('.footer')))[3]).toBe(255);
   await page.locator('.footer').scrollIntoViewIfNeeded();
   expect(await background.boundingBox()).toEqual(original);

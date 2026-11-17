@@ -35,13 +35,21 @@ it('selects a component, state and viewport without changing the shared definiti
   expect(expandVisualReviewCases(config)).toHaveLength(12);
 });
 
-it('publishes the selected element image with accurate selector-free metadata', async () => {
+it('publishes the component without relocating the prepared viewport and omits selectors from metadata', async () => {
   const input = configuration();
   input.cases[0].captureSelector = '#branches';
   const [capture] = expandVisualReviewCases(validateVisualReviewConfig(input));
   const component = readFileSync('brand/icons/app/ngen-app-dark-32.png');
   const fullPage = readFileSync('brand/icons/app/ngen-app-dark-128.png');
-  const page = { screenshot: async () => fullPage, locator: () => ({ screenshot: async () => component }) };
+  // Browser boundary: element screenshots may scroll and lose a prepared hover.
+  const page = {
+    viewportSize: () => ({ width: 390, height: 844 }),
+    screenshot: async (options) => options.clip ? component : fullPage,
+    locator: () => ({
+      screenshot: async () => fullPage,
+      evaluate: async () => ({ x: 10, y: 20, width: 32, height: 32 }),
+    }),
+  };
   const directory = mkdtempSync(join(tmpdir(), 'ngen-visual-test-'));
   try {
     const paths = await publishVisualReviewEvidence(page, capture, { playwright: 'test', chromium: 'test' }, { head: null, dirty: true }, [], directory);
@@ -49,6 +57,23 @@ it('publishes the selected element image with accurate selector-free metadata', 
     const metadata = JSON.parse(readFileSync(paths.metadata, 'utf8'));
     expect(metadata.fullPage).toBe(false);
     expect(JSON.stringify(metadata)).not.toContain('#branches');
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+it('rejects partial component captures instead of silently clipping outside the viewport', async () => {
+  const input = configuration();
+  input.cases[0].captureSelector = '#branches';
+  const [capture] = expandVisualReviewCases(validateVisualReviewConfig(input));
+  const directory = mkdtempSync(join(tmpdir(), 'ngen-visual-test-'));
+  const page = {
+    viewportSize: () => ({ width: 390, height: 844 }),
+    screenshot: async () => Buffer.from('partial image'),
+    locator: () => ({ evaluate: async () => ({ x: 0, y: 800, width: 390, height: 100 }) }),
+  };
+  try {
+    await expect(publishVisualReviewEvidence(page, capture, {}, {}, [], directory)).rejects.toThrow('fit inside the viewport');
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }

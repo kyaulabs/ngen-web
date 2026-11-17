@@ -334,9 +334,21 @@ export async function publishVisualReviewEvidence(
 	filesystem = fs
 ) {
 	assertNoPageErrors(errors);
-	const image = capture.captureSelector
-		? await page.locator(capture.captureSelector).screenshot({animations: 'disabled'})
-		: await page.screenshot({fullPage: true, animations: 'disabled'});
+	// Use the prepared viewport instead of element/full-document capture, which
+	// can scroll or resize the page and lose an intentionally applied hover.
+	const clip = capture.captureSelector ? await page.locator(capture.captureSelector).evaluate((element) => {
+		const rect = element.getBoundingClientRect();
+		return {x: rect.x, y: rect.y, width: rect.width, height: rect.height};
+	}) : undefined;
+	if (clip) {
+		const viewport = page.viewportSize();
+		if (!viewport || Object.values(clip).some((value) => !Number.isFinite(value)) ||
+			clip.width <= 0 || clip.height <= 0 || clip.x < 0 || clip.y < 0 ||
+			clip.x + clip.width > viewport.width || clip.y + clip.height > viewport.height) {
+			throw new Error('visual review component must fit inside the viewport; use a smaller component or a full-page case');
+		}
+	}
+	const image = await page.screenshot({fullPage: !clip, animations: 'disabled', ...(clip ? {clip} : {})});
 	assertNoPageErrors(errors);
 	const outputs = evidencePaths(capture, root, filesystem);
 	const metadata = evidenceMetadata(capture, versions, revision);
