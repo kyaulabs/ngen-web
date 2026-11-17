@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.\
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines
 and [Semantic Versioning](https://semver.org/spec/v2.0.0.html) for versioning adherance.
 
+## [💾](https://github.com/kyaulabs/ngen-web/releases/tag/v0.1.13) [0.1.13](https://github.com/kyaulabs/ngen-web/compare/v0.1.12...v0.1.13) - (2026-11-17)
+
+### 🐛 Bug Fixes
+
+- [Releases] Apply the requested title-only alignment ([3957c6a](https://github.com/kyaulabs/ngen-web/commit/3957c6a8d13c3be085a59763cb150b9cf6b14bd0))
+<!-- Auto-generated on 2026-11-17T09:47:59.795980228-08:00 -->
 ## [💾](https://github.com/kyaulabs/ngen-web/releases/tag/v0.1.12) [0.1.12](https://github.com/kyaulabs/ngen-web/compare/v0.1.11...v0.1.12) - (2026-11-17)
 
 ### 🐛 Bug Fixes
