@@ -65,7 +65,7 @@ export async function controlNetwork(page, offline = false, reviewState = 'dark'
     };
     if (url.pathname.endsWith('/check-runs') && reviewState === 'checks-empty-dark') data = { total_count: 0, check_runs: [] };
     if (url.pathname.endsWith('/status')) data = { total_count: 0, statuses: [] };
-    if (url.pathname.endsWith('/releases')) data = [{ tag_name: 'v0.1.0-fixture', name: 'Browser test fixture', body: `${releaseLogo}\n\n${releaseNotes}`, published_at: '2026-11-12T00:00:00Z', html_url: `${base}/releases`, assets: ['ngen-source.tar.gz', 'ngen-source.tar.gz.sha256'].map((name) => ({ name, browser_download_url: `${base}/releases/download/v0.1.0-fixture/${name}` })) }];
+    if (url.pathname.endsWith('/releases')) data = [{ tag_name: 'v0.1.0-fixture', name: 'NGEN v0.1.0', body: `${releaseLogo}\n\n${releaseNotes}`, published_at: '2026-11-12T00:00:00Z', html_url: `${base}/releases`, assets: ['ngen-source.tar.gz', 'ngen-source.tar.gz.sha256'].map((name) => ({ name, browser_download_url: `${base}/releases/download/v0.1.0-fixture/${name}` })) }];
     if (url.pathname.endsWith('/issues')) data = [{ ...issue, state: url.searchParams.get('state') }];
     if (url.pathname.endsWith('/issues') && url.searchParams.has('milestone')) data = url.searchParams.get('milestone') === '1'
       ? [{ ...issue, title: 'Define coordinate frames', state: 'open' }, { ...issue, number: 14, title: 'Verify trajectory bounds', state: 'closed' }]

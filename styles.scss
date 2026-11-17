@@ -1,4 +1,4 @@
-// $KYAULabs: styles.scss kyau@aura.kyaulabs 2026/11/16 -0800 Exp $
+// $KYAULabs: styles.scss kyau@aura.kyaulabs 2026/11/17 -0800 Exp $
 /* NGEN visual system, adapted from the KYAU Labs Prism dashboard (AGPL-3.0).
    Prism palette and component treatment; brand 1.4. The site is dark-only. */
 /* Self-hosted Prism typefaces; preserve the supplied font binaries. */
@@ -1396,8 +1396,9 @@ body.pkg-modal-open { overflow: hidden; }
 .release-tag:hover { text-decoration: none; filter: brightness(1.08); }
 
 .release-title { font-size: 1rem; font-weight: 600; }
-.release-badges { display: inline-flex; align-items: center; gap: 0.75rem; }
-.release-changelog { min-block-size: 1.5rem; display: inline-flex; align-items: center; cursor: pointer; }
+/* Center Operator Mono label ink with the Neo Sans title, not just line boxes. */
+.release-badges { display: inline-flex; align-items: center; gap: 0.75rem; transform: translateY(-0.04em); }
+.release-changelog { min-block-size: 1.5rem; display: inline-flex; align-items: center; color: var(--ink-1); cursor: pointer; }
 .release-changelog:hover { color: var(--accent); border-color: var(--accent); }
 .release-changelog-content { margin-block: 1rem; }
 
@@ -1568,6 +1569,7 @@ body.pkg-modal-open { overflow: hidden; }
 }
 .md-body .release-code pre { flex: 1 1 auto; min-inline-size: 0; margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; }
 .md-body .release-code code { color: var(--accent); font-size: 0.68rem; }
+.release-code .clone-copy { align-self: flex-start; }
 .code-copy-status:empty { display: none; }
 .md-body .code-copy-status { text-align: start; font-size: 0.68rem; color: var(--ink-1); }
 
