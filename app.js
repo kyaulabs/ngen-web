@@ -317,6 +317,15 @@ const Utils = {
  * from upstream release bodies can ever reach the DOM.
  * ------------------------------------------------------------------------- */
 const Markdown = {
+  /** Render release notes without their redundant leading NGEN logo block. */
+  renderRelease(src) {
+    const source = String(src || '');
+    const banner = /^\s*<p\b[^>]*>\s*<picture\b[^>]*>[\s\S]*?<\/picture>\s*<\/p>\s*/i.exec(source);
+    const notes = banner && /\/brand\/logos\/(?:png|svg)\/ngen-/i.test(banner[0])
+      ? source.slice(banner[0].length) : source;
+    return this.render(notes);
+  },
+
   /**
    * Render markdown source to an HTML string.
    * @param {string} src
@@ -1514,7 +1523,7 @@ const UI = {
           </div>
           <div class="release-body" id="release-body-${i}">
             <div class="release-body-inner">
-              <div class="md-body">${Markdown.render(r.body)}</div>
+              <div class="md-body">${Markdown.renderRelease(r.body)}</div>
             </div>
           </div>
         </article>

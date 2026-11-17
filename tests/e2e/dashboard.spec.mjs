@@ -52,6 +52,21 @@ test('preserves the dashboard with NGEN identity, live charts and an honest game
   expect(errors).toEqual([]);
 });
 
+test('omits the leading release logo without discarding rendered notes', async ({ page }) => {
+  await load(page);
+  const notes = page.locator('.release-body .md-body').first();
+  await expect(notes.locator('h2').first()).toHaveText('Notes');
+  await expect(notes).toContainText('Controlled release data for browser verification.');
+  await expect(notes).not.toContainText('<picture>');
+  await expect(notes).not.toContainText('ngen-wordmark');
+  await expect(notes.locator('picture, img')).toHaveCount(0);
+  const toggle = page.locator('.release-toggle').first();
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  await toggle.click();
+  await expect(notes).toBeVisible();
+});
+
 test('sizes and aligns the profile chevron like Prism punctuation', async ({ page }) => {
   await load(page);
   const metrics = await page.locator('.contrib-card .pkg-cta').first().evaluate((hint) => {

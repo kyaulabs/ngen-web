@@ -82,6 +82,15 @@
       "states": [
         { "id": "dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": ".footer-legal" }] }
       ]
+    },
+    {
+      "id": "releases",
+      "path": "/",
+      "readySelector": "body.loaded",
+      "captureSelector": "#releases .release-card",
+      "states": [
+        { "id": "dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": ".release-head" }] }
+      ]
     }
   ]
 }

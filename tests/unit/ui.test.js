@@ -75,6 +75,17 @@ describe('dashboard renderers', () => {
     ItemModal.open({}, 'issue'); ContribModal.open('kyau');
     expect(document.body.innerHTML).toBe('');
   });
+  it('omits the leading release logo picture while preserving the release notes', () => {
+    const logo = '<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/kyaulabs/ngen/v0.1.0/brand/logos/png/ngen-wordmark-dark-640.png"><img src="https://raw.githubusercontent.com/kyaulabs/ngen/v0.1.0/brand/logos/png/ngen-wordmark-light-640.png" width="400" alt="NGEN"></picture></p>';
+    const body = `${logo}\n\n## Highlights\n\nKeep **all notes** and [documentation](https://github.com/kyaulabs/ngen).`;
+    UI.renderReleases({ ...data, releases: [{ ...data.releases[0], body }] });
+    const notes = document.querySelector('.release-body .md-body');
+    expect(notes.firstElementChild.tagName).toBe('H2');
+    expect(notes.textContent).not.toContain('<picture>');
+    expect(notes.textContent).not.toContain('ngen-wordmark');
+    expect(notes.querySelector('strong').textContent).toBe('all notes');
+    expect(notes.querySelector('a').getAttribute('href')).toBe('https://github.com/kyaulabs/ngen');
+  });
   it('toggles release notes without collapsing on notes or links', () => {
     UI.renderReleases(data);
     const card = document.querySelector('.release-card');
