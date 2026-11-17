@@ -52,7 +52,7 @@ describe('dashboard renderers', () => {
       expect(meta.textContent).not.toContain('HEAD pointer');
       expect(meta.textContent).not.toContain('branch protection status');
       expect(meta.textContent.trim().startsWith('browse tree')).toBe(true);
-      expect(meta.firstElementChild.getAttribute('href')).toContain('/tree/');
+      expect(meta.querySelector('a').getAttribute('href')).toContain('/tree/');
       expect(card.querySelector('.branch-sha').getAttribute('href')).toContain('/commit/');
       expect(card.querySelector('.tag-protected')).not.toBeNull();
     }

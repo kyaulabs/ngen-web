@@ -1,6 +1,7 @@
-// $KYAULabs: fixtures.js kyau@aura.kyaulabs 2026/11/12 -0800 Exp $
+// $KYAULabs: fixtures.js kyau@aura.kyaulabs 2026/11/16 -0800 Exp $
 // Controlled fixture records adapted from the Prism tests. Never used by the site.
-import { CONFIG, Utils } from '../app.js';
+import { Utils } from '../app.js';
+const SEED = 0x4e47454e;
 export const FixtureSynth = {
   /** Label vocabulary aligned with the KYAU Labs TPS labeling system. */
   LABELS: {
@@ -9,41 +10,6 @@ export const FixtureSynth = {
     'ci/cd': '#ffd791', chore: '#ffd791', security: '#ff5050', critical: '#800000',
     high: '#c11c00', medium: '#f39a4d', low: '#8cd211', 'in progress': '#fbca04',
     done: '#0e8a16',
-  },
-
-  /**
-   * Distribute each week's commit total across its 7 days so the heatmap has
-   * a plausible daily texture while preserving the *real* weekly totals.
-   * Deterministic: seeded per week index.
-   * @param {number[]} weekly - 52 weekly totals, oldest first.
-   * @returns {Array<{date: Date, count: number, future: boolean}>} 364 day cells.
-   */
-  daysFromWeekly(weekly) {
-    const DAY = 864e5;
-    const now = new Date();
-    const utcToday = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-    const endSunday = utcToday - new Date(utcToday).getUTCDay() * DAY;
-    const firstSunday = endSunday - (weekly.length - 1) * 7 * DAY;
-    const weights = [0.35, 1.25, 1.3, 1.2, 1.1, 0.9, 0.45]; // Sun..Sat
-
-    const days = [];
-    for (let w = 0; w < weekly.length; w++) {
-      const rng = Utils.mulberry32(CONFIG.repoId + w * 97);
-      const jitter = weights.map((wt) => wt * (0.55 + rng() * 0.9));
-      const sum = jitter.reduce((a, b) => a + b, 0) || 1;
-      /* Largest-remainder integer allocation of this week's total. */
-      const raw = jitter.map((j) => (j / sum) * weekly[w]);
-      const ints = raw.map(Math.floor);
-      let rest = weekly[w] - ints.reduce((a, b) => a + b, 0);
-      const order = raw.map((r, i) => [r - ints[i], i]).sort((a, b) => b[0] - a[0]);
-      for (let k = 0; k < order.length && rest > 0; k++, rest--) ints[order[k][1]]++;
-
-      for (let d = 0; d < 7; d++) {
-        const date = new Date(firstSunday + (w * 7 + d) * DAY);
-        days.push({ date, count: ints[d], future: date.getTime() > utcToday });
-      }
-    }
-    return days;
   },
 
   /**
@@ -91,7 +57,7 @@ export const FixtureSynth = {
           ['docs: add architecture decision records', ['documentation', 'low'], 'kyaulabs-bot'],
           ['refactor(hooks): extract shared git helpers', ['refactor', 'medium'], 'kyau'],
         ];
-    const rng = Utils.mulberry32(CONFIG.repoId + (kind === 'issue' ? 11 : 23) + (state === 'open' ? 0 : 7));
+    const rng = Utils.mulberry32(SEED + (kind === 'issue' ? 11 : 23) + (state === 'open' ? 0 : 7));
     const base = 'https://github.com/kyaulabs/ngen';
     const rows = [];
     for (let i = 0; i < Math.min(n, pool.length); i++) {
@@ -158,7 +124,7 @@ export const FixtureSynth = {
    * @returns {Array<{sha:string,msg:string,date:string,url:string}>}
    */
   tickerCommits() {
-    const rng = Utils.mulberry32(CONFIG.repoId + 5);
+    const rng = Utils.mulberry32(SEED + 5);
     const hex = () => Array.from({ length: 7 }, () => '0123456789abcdef'[Math.floor(rng() * 16)]).join('');
     const msgs = [
       'fix(security): harden agent permission model and add git-commit gating validator',

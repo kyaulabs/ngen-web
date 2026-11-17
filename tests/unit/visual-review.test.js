@@ -101,7 +101,10 @@ it('rejects an empty intersection rather than reporting a successful zero-test r
 it('lists selected component captures through the CLI without starting a browser', () => {
   const result = spawnSync(process.execPath, ['tools/visual-review.mjs', '--list', '--case', 'branches', '--viewport', 'mobile'], { encoding: 'utf8' });
   expect(result.status).toBe(0);
-  expect(result.stdout.trim().split('\n')).toEqual(['branches dark mobile', 'branches offline-dark mobile']);
+  expect(result.stdout.trim().split('\n')).toEqual([
+    'branches dark mobile', 'branches offline-dark mobile', 'branches checks-failed-dark mobile',
+    'branches checks-empty-dark mobile', 'branches checks-unavailable-dark mobile', 'branches checks-focus-dark mobile',
+  ]);
   const invalid = spawnSync(process.execPath, ['tools/visual-review.mjs', '--list', '--case', 'unknown'], { encoding: 'utf8' });
   expect(invalid.status).toBe(1);
   expect(invalid.stderr).toContain('unknown or invalid');

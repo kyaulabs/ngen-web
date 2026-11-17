@@ -52,6 +52,68 @@ test('preserves the dashboard with NGEN identity, live charts and an honest game
   expect(errors).toEqual([]);
 });
 
+test.describe('UTC commit calendar', () => {
+  test.use({ timezoneId: 'America/Los_Angeles' });
+  test('counts complete history and keeps UTC month and tooltip dates in a western timezone', async ({ page }) => {
+    await page.clock.setFixedTime(new Date('2026-11-17T12:00:00Z'));
+    await load(page);
+    await expect(page.locator('#activity-total')).toHaveText('163');
+    expect(await page.locator('#chart-heatmap text[y="10"]').allTextContents())
+      .toEqual(['Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov']);
+    const monday = page.locator('#chart-heatmap rect.day').nth(358);
+    await monday.hover();
+    await expect(page.locator('#chart-tip')).toContainText('Mon, Nov 16, 2026');
+    await expect(page.locator('#chart-tip')).toContainText('10 commits');
+    const overlay = page.locator('#chart-activity rect').last();
+    const bounds = await overlay.boundingBox();
+    await overlay.hover({ position: { x: bounds.width - 1, y: 40 } });
+    await expect(page.locator('#chart-tip .tt-title')).toContainText('Sun, Nov 15, 2026');
+    await expect(page.locator('#chart-tip .tt-sub')).toHaveText('Nov 15 — Nov 21');
+    await expect(page.locator('#matrix .sec-sub')).toContainText('UTC');
+    await expect(page.locator('#matrix')).not.toContainText('Estimated');
+  });
+});
+
+test('keeps recent matrix cells reachable without clipping on narrow screens', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-17T12:00:00Z'));
+  for (const width of [390, 320]) {
+    await page.setViewportSize({ width, height: 844 });
+    await load(page);
+    const geometry = await page.locator('#chart-heatmap svg').evaluate((svg) => ({
+      edge: svg.viewBox.baseVal.width,
+      last: Math.max(...[...svg.querySelectorAll('rect.day')].map((cell) => cell.x.baseVal.value + cell.width.baseVal.value)),
+    }));
+    expect(geometry.last, `${width}px last calendar column`).toBeLessThanOrEqual(geometry.edge);
+    const lastMonday = page.locator('#chart-heatmap rect.day').nth(358);
+    await lastMonday.scrollIntoViewIfNeeded();
+    const cell = await lastMonday.boundingBox();
+    const chart = await page.locator('#chart-heatmap').boundingBox();
+    expect(cell.x).toBeGreaterThanOrEqual(chart.x);
+    expect(cell.x + cell.width).toBeLessThanOrEqual(chart.x + chart.width);
+    const scroller = page.locator('#chart-heatmap');
+    const before = await scroller.evaluate((element) => element.scrollLeft);
+    await scroller.focus();
+    await expect(scroller).toHaveCSS('outline-width', '2px');
+    await page.keyboard.press('ArrowLeft');
+    await expect.poll(() => scroller.evaluate((element) => element.scrollLeft)).toBeLessThan(before);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  }
+});
+
+test('centers the source command and copy control in the Games command block', async ({ page }) => {
+  for (const width of [1920, 390, 320]) {
+    await page.setViewportSize({ width, height: width === 1920 ? 1080 : 844 });
+    await load(page);
+    const block = await page.locator('#install .clone-block').boundingBox();
+    const text = await page.locator('#install .clone-block-cmds').boundingBox();
+    const copy = await page.locator('#install .clone-copy').boundingBox();
+    expect(Math.abs(text.y + text.height / 2 - (block.y + block.height / 2)), `${width}px command center`).toBeLessThanOrEqual(1);
+    expect(Math.abs(copy.y + copy.height / 2 - (block.y + block.height / 2)), `${width}px copy center`).toBeLessThanOrEqual(1);
+    await expect(page.locator('#install .clone-cmd')).toHaveText(command);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  }
+});
+
 test('omits the leading release logo without discarding rendered notes', async ({ page }) => {
   await load(page);
   const notes = page.locator('.release-body .md-body').first();
@@ -138,22 +200,66 @@ for (const width of [1920, 390, 320]) {
     await load(page);
     const main = page.locator('.branch-card').filter({ has: page.locator('.branch-name', { hasText: /^main$/ }) });
     const develop = page.locator('.branch-card').filter({ has: page.locator('.branch-name', { hasText: /^develop$/ }) });
-    await expect(main.locator('.branch-meta')).toHaveText('browse tree · committed 14d ago');
-    await expect(develop.locator('.branch-meta')).toHaveText('browse tree · committed 1h ago');
+    await expect(main.locator('.branch-history')).toHaveText('browse tree · committed 14d ago');
+    await expect(develop.locator('.branch-history')).toHaveText('browse tree · committed 1h ago');
     await expect(main.locator('.tag-default')).toHaveText('default');
     for (const card of [main, develop]) {
       await expect(card.locator('.tag-protected')).toHaveText('protected');
       const meta = card.locator('.branch-meta');
       await expect(meta).not.toContainText('HEAD pointer');
       await expect(meta).not.toContainText('branch protection status');
-      await expect(meta.locator('a')).toHaveAttribute('href', /\/tree\/(?:main|develop)$/);
+      await expect(meta.locator('.branch-tree')).toHaveAttribute('href', /\/tree\/(?:main|develop)$/);
       await card.locator('.branch-sha').focus();
       await page.keyboard.press('Tab');
-      await expect(meta.locator('a')).toBeFocused();
+      await expect(meta.locator('.branch-tree')).toBeFocused();
+      await page.keyboard.press('Tab');
+      await expect(meta.locator('.branch-author')).toBeFocused();
+      await page.keyboard.press('Tab');
+      await expect(meta.locator('.branch-checks')).toBeFocused();
+      const row = await card.locator('.branch-commit').boundingBox();
+      const checks = await card.locator('.branch-checks').boundingBox();
+      const bounds = await meta.boundingBox();
+      expect(Math.abs(checks.x + checks.width - bounds.x - bounds.width)).toBeLessThanOrEqual(1);
+      expect(Math.abs(checks.y + checks.height / 2 - row.y - row.height / 2)).toBeLessThanOrEqual(1);
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   });
 }
+
+test('shows a compact HEAD author avatar and right-aligned colored check counts', async ({ page }) => {
+  await load(page);
+  const cards = page.locator('.branch-card');
+  const main = cards.filter({ has: page.locator('.branch-name', { hasText: /^main$/ }) });
+  const develop = cards.filter({ has: page.locator('.branch-name', { hasText: /^develop$/ }) });
+  await main.scrollIntoViewIfNeeded();
+  const author = main.getByRole('link', { name: 'Open commit author @kyau on GitHub' });
+  await expect(author).toHaveAttribute('href', 'https://github.com/kyau');
+  await expect(author.locator('img')).toHaveCSS('width', '20px');
+  await expect(author.locator('img')).toHaveCSS('height', '20px');
+  expect((await author.boundingBox()).width).toBeGreaterThanOrEqual(24);
+  expect((await author.boundingBox()).height).toBeGreaterThanOrEqual(24);
+  await expect(main.locator('.branch-checks')).toHaveText('14/14');
+  await expect(main.locator('.branch-checks .fa-icon')).toHaveCSS('color', 'rgb(52, 211, 153)');
+  await expect(develop.locator('.branch-checks')).toHaveText('2/4');
+  await expect(develop.locator('.branch-checks .fa-icon')).toHaveCSS('color', 'rgb(251, 191, 36)');
+  for (const card of await cards.all()) {
+    const meta = await card.locator('.branch-meta').boundingBox();
+    const checks = await card.locator('.branch-checks').boundingBox();
+    expect(Math.abs(meta.x + meta.width - checks.x - checks.width)).toBeLessThanOrEqual(1);
+    await expect(card.locator('.branch-checks')).toHaveAttribute('href', /\/commit\/[a-f0-9]{40}\/checks$/);
+  }
+});
+
+test('renders failed checks in red while retaining the branch date and author', async ({ page }) => {
+  await controlNetwork(page, false, 'checks-failed-dark');
+  await load(page);
+  const card = page.locator('.branch-card').filter({ has: page.locator('.branch-name', { hasText: /^main$/ }) });
+  await expect(card.locator('.branch-checks')).toHaveText('3/4');
+  await expect(card.locator('.branch-checks')).toHaveAccessibleName(/checks failed/);
+  await expect(card.locator('.branch-checks .fa-icon')).toHaveCSS('color', 'rgb(251, 113, 133)');
+  await expect(card.locator('time')).toBeVisible();
+  await expect(card.locator('.branch-author')).toHaveCount(1);
+});
 
 for (const [width, height, scale] of [[1920, 1039, 2], [2560, 1385, 1.5], [3440, 1440, 1]]) {
   test(`fits hero actions at ${width}×${height} CSS pixels and ${scale}× device scale`, async ({ browser }) => {
