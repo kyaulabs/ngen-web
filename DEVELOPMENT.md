@@ -32,10 +32,23 @@ Application CSS/JS URLs carry the website version as `?v=`. Update these with th
 ```sh
 npx playwright install chromium
 npm run check
-node_modules/.bin/playwright test visual_review.spec.mjs --workers=1 --output tests/Browser/Screenshots/.playwright --reporter=line
+npm run test:visual -- --case branches
 ```
 
 Checks run ESLint, Vitest with ≥95% aggregate coverage, production builds and Chromium tests. Playwright starts the allowlisted, loopback-only `tests/server.mjs`; it is not a deployment server. Browser tests intercept external traffic with controlled fixtures. Ignored captures under `tests/Browser/Screenshots/` are working evidence, not user approval or full accessibility/performance certification. See `DESIGN.md` for the approved reference and viewport/state matrix.
+
+Visual review is component-based tooling, separate from behavioral regression tests. `visual_review.json` defines reusable component cases, states and selectors; the generic runner shares the configured viewports, actions, network fixtures and contained evidence publisher. Add or update a case instead of writing a temporary capture script.
+
+```sh
+npm run test:visual -- --list
+npm run test:visual -- --case branches
+npm run test:visual -- --case branches --state dark --viewport mobile
+npm run test:visual
+```
+
+The command builds fresh application assets before capture. `--list` only lists cases; it does not build or launch Chromium. Repeat filters to include multiple values. Unknown filters and empty selections fail, rather than reporting a successful zero-test run. With no filters, run the full matrix. For localized changes, inspect the affected component's required states at mobile, desktop and 320px reflow; use the full matrix for shared tooling or cross-cutting changes.
+
+A case can set `"captureSelector": "#branches"` to capture one unique component directly. Omit it for the existing full-page capture. Both modes retain loopback-only navigation, controlled fixtures, page-error checks and the same safe evidence publication. Metadata records `fullPage: false` for component captures without storing raw selectors. No crop helper or new dependency is needed. Evidence remains ignored; user visual acceptance is separate from passing checks.
 
 GitHub REST metadata is cached in session storage for ten minutes. Failure uses the dated public snapshot in `data/snapshot.json`, embedded in `app.js`; refresh both together. Missing feeds remain unavailable, not simulated. Pending weekly statistics are marked unavailable. Daily matrix cells estimate distributions from weekly totals, not exact daily observations. Public languages describe the public default branch, not necessarily the engine’s intended implementation language. The game showcase remains empty until projects are announced.
 

@@ -1,4 +1,4 @@
-// $KYAULabs: visual_review.spec.mjs kyau@aura.kyaulabs 2026/11/12 -0800 Exp $
+// $KYAULabs: visual_review.spec.mjs kyau@aura.kyaulabs 2026/11/16 -0800 Exp $
 
 import {createRequire} from 'node:module';
 import {test} from '@playwright/test';
@@ -14,7 +14,7 @@ import {
 
 const require = createRequire(import.meta.url);
 const playwrightVersion = require('playwright/package.json').version;
-const captures = expandVisualReviewCases(loadVisualReviewConfig());
+const captures = expandVisualReviewCases(loadVisualReviewConfig(), JSON.parse(process.env.NGEN_VISUAL_SELECTION || '{}'));
 const revision = revisionIdentity();
 
 test.use({headless: true, serviceWorkers: 'block'});
@@ -39,6 +39,8 @@ for (const capture of captures) {
 			if (capture.readySelector !== null) {
 				await page.locator(capture.readySelector).waitFor({state: 'visible'});
 			}
+			await page.evaluate(() => document.fonts.ready);
+			if (capture.captureSelector) await page.locator(capture.captureSelector).scrollIntoViewIfNeeded();
 			await applyVisualReviewActions(page, capture.actions);
 			assertCaptureOrigin(page.url(), capture.url);
 			await publishVisualReviewEvidence(page, capture, {

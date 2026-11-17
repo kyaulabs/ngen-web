@@ -16,4 +16,6 @@ The user’s latest reference is `../prism-web` and https://prism.kyaulabs.com. 
 - Keep tracker rows flat in both states: no individual rounded frames, borders or dividers. Preserve outer/tab borders, hover feedback, inset keyboard focus, native activation, details dialogs and focus restoration.
 - Verify 390×844 mobile, 320px reflow, 1920×1080, 3440×1440, 3840×2160, 3840×2400 and the scaled laptop capture. Include hover, focus, offline, expanded release, issue/PR dialogs, contributor profiles, scrolled header/dashboard, footer and no-JavaScript fallback.
 
+Use reusable component cases and targeted `npm run test:visual` runs for routine visual changes, not ad-hoc Playwright/crop scripts. Capture the affected states at the shared mobile, desktop and 320px reflow viewports; run the full matrix for shared tooling or cross-cutting changes. Behavioral regression tests remain separate.
+
 Quality targets: semantic HTML, WCAG 2.2 AA, keyboard and contained dialog focus, progressive enhancement and no horizontal page overflow. Primary content actions target 44×44 CSS pixels; compact controls must meet the 24×24 minimum. Retain non-color status/selection cues and reduced-motion support. Browser evidence uses controlled local content and is not a claim of full accessibility conformance, independent review or accelerated performance.
