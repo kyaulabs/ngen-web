@@ -131,17 +131,6 @@ describe('release note branding', () => {
 });
 
 describe('synthetic data invariants', () => {
-  it('preserves weekly totals and stable daily allocations', () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-01-07T12:00:00Z'));
-    const weekly = [0, 1, 57];
-    const days = Synth.daysFromWeekly(weekly);
-    expect(days).toEqual(Synth.daysFromWeekly(weekly));
-    expect(days).toHaveLength(21);
-    weekly.forEach((total, i) => expect(days.slice(i * 7, i * 7 + 7).reduce((sum, d) => sum + d.count, 0)).toBe(total));
-    expect(days.some((d) => d.future)).toBe(true);
-    expect(Synth.daysFromWeekly([])).toEqual([]);
-  });
   it.each(['issue', 'pr'])('builds bounded, structured %s rows', (kind) => {
     for (const state of ['open', 'closed']) {
       const rows = Synth.trackerRows(kind, state, 99);

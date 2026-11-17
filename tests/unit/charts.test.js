@@ -1,11 +1,11 @@
-// $KYAULabs: charts.test.js kyau@aura.kyaulabs 2026/11/12 -0800 Exp $
+// $KYAULabs: charts.test.js kyau@aura.kyaulabs 2026/11/16 -0800 Exp $
 import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
 import { beforeEach, afterEach, expect, it, vi } from 'vitest';
-import { Charts, Synth, Tip, Utils, SNAPSHOT } from '../../app.js';
+import { Charts, Activity, Tip, Utils, SNAPSHOT } from '../../app.js';
 
 const d3 = createRequire(`${process.cwd()}/package.json`)('./vendor/d3.min.js');
-const data = { weekly: SNAPSHOT.weekly, languages: SNAPSHOT.languages, counts: SNAPSHOT.counts, days: Synth.daysFromWeekly(SNAPSHOT.weekly) };
+const data = { weekly: SNAPSHOT.weekly, languages: SNAPSHOT.languages, counts: SNAPSHOT.counts, days: Activity.fromCommits([]).days };
 const dimensions = (el, width = 640, height = 240) => {
   Object.defineProperty(el, 'clientWidth', { configurable: true, value: width });
   Object.defineProperty(el, 'clientHeight', { configurable: true, value: height });

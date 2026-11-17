@@ -33,7 +33,38 @@
       "captureSelector": "#branches",
       "states": [
         { "id": "dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": "#branches .sec-head" }] },
-        { "id": "offline-dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": "#branches .sec-head" }] }
+        { "id": "offline-dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": "#branches .sec-head" }] },
+        { "id": "checks-failed-dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": "#branches .sec-head" }] },
+        { "id": "checks-empty-dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": "#branches .sec-head" }] },
+        { "id": "checks-unavailable-dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": "#branches .sec-head" }] },
+        { "id": "checks-focus-dark", "colorScheme": "dark", "actions": [{ "type": "focus", "selector": ".branch-card:first-child .branch-checks" }] }
+      ]
+    },
+    {
+      "id": "games",
+      "path": "/",
+      "readySelector": "body.loaded",
+      "captureSelector": "#install",
+      "states": [
+        { "id": "dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": "#install .pkg-head" }] }
+      ]
+    },
+    {
+      "id": "activity",
+      "path": "/",
+      "readySelector": "body.loaded",
+      "captureSelector": "#activity > .panel-chart",
+      "states": [
+        { "id": "dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": "#activity .sec-head" }] }
+      ]
+    },
+    {
+      "id": "matrix",
+      "path": "/",
+      "readySelector": "body.loaded",
+      "captureSelector": "#matrix",
+      "states": [
+        { "id": "dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": "#matrix .sec-head" }] }
       ]
     },
     {

@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.\
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines
 and [Semantic Versioning](https://semver.org/spec/v2.0.0.html) for versioning adherance.
 
+## [💾](https://github.com/kyaulabs/ngen-web/releases/tag/v0.1.10) [0.1.10](https://github.com/kyaulabs/ngen-web/compare/v0.1.9...v0.1.10) - (2026-11-17)
+
+### 🐛 Bug Fixes
+
+- [Dashboard] Show head authors, checks and complete activity ([4cf3273](https://github.com/kyaulabs/ngen-web/commit/4cf3273a1f4a321b6cb4dd4994bdb490a04c94f1))
+<!-- Auto-generated on 2026-11-16T20:55:25.792951017-08:00 -->
 ## [💾](https://github.com/kyaulabs/ngen-web/releases/tag/v0.1.9) [0.1.9](https://github.com/kyaulabs/ngen-web/compare/v0.1.8...v0.1.9) - (2026-11-17)
 
 ### ⚗️ Testing
