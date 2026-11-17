@@ -211,30 +211,18 @@ test('opens a contributor-themed changelog dialog without toggling the release',
   await expect(dialog).toBeHidden();
 });
 
-test('centers release badge labels on the title ink rather than their font line boxes', async ({ page }) => {
-  for (const width of [1920, 1024]) {
-    await page.setViewportSize({ width, height: 1080 });
+test('leaves release badges untransformed and offsets only the title by 0.1em', async ({ page }) => {
+  for (const width of [1920, 1024, 390, 320]) {
+    await page.setViewportSize({ width, height: width > 390 ? 1080 : 844 });
     await load(page);
-    const geometry = await page.locator('.release-head').evaluate((header) => {
-      const title = header.querySelector('.release-title');
-      const range = document.createRange();
-      range.selectNodeContents(title);
-      const context = document.createElement('canvas').getContext('2d');
-      context.font = getComputedStyle(title).font;
-      const metrics = context.measureText(title.textContent);
-      const baseline = range.getBoundingClientRect().top + metrics.fontBoundingBoxAscent;
-      return {
-        title: baseline + (metrics.actualBoundingBoxDescent - metrics.actualBoundingBoxAscent) / 2,
-        badges: [...header.querySelectorAll('.badge-latest, .release-changelog')].map((badge) => {
-          range.selectNodeContents(badge);
-          context.font = getComputedStyle(badge).font;
-          const ink = context.measureText(badge.textContent.trim());
-          return range.getBoundingClientRect().top + ink.fontBoundingBoxAscent
-            + (ink.actualBoundingBoxDescent - ink.actualBoundingBoxAscent) / 2;
-        }),
-      };
+    await expect(page.locator('.release-badges')).toHaveCSS('transform', 'none');
+    const title = await page.locator('.release-title').evaluate((element) => {
+      const style = getComputedStyle(element);
+      const transform = new DOMMatrixReadOnly(style.transform);
+      return { x: transform.m41, y: transform.m42, fontSize: parseFloat(style.fontSize) };
     });
-    for (const center of geometry.badges) expect(Math.abs(center - geometry.title), `${width}px title/badge ink alignment: ${JSON.stringify(geometry)}`).toBeLessThanOrEqual(0.25);
+    expect(title.x, `${width}px title horizontal offset`).toBe(0);
+    expect(title.y, `${width}px title vertical offset`).toBeCloseTo(title.fontSize * 0.1, 3);
   }
 });
 

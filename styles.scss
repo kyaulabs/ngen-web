@@ -1395,9 +1395,8 @@ body.pkg-modal-open { overflow: hidden; }
 }
 .release-tag:hover { text-decoration: none; filter: brightness(1.08); }
 
-.release-title { font-size: 1rem; font-weight: 600; }
-/* Center Operator Mono label ink with the Neo Sans title, not just line boxes. */
-.release-badges { display: inline-flex; align-items: center; gap: 0.75rem; transform: translateY(-0.04em); }
+.release-title { font-size: 1rem; font-weight: 600; transform: translateY(0.1em); }
+.release-badges { display: inline-flex; align-items: center; gap: 0.75rem; }
 .release-changelog { min-block-size: 1.5rem; display: inline-flex; align-items: center; color: var(--ink-1); cursor: pointer; }
 .release-changelog:hover { color: var(--accent); border-color: var(--accent); }
 .release-changelog-content { margin-block: 1rem; }
