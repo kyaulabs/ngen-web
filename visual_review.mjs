@@ -1,4 +1,4 @@
-// $KYAULabs: visual_review.mjs setup@prism 2026/08/25 +0000 Exp $
+// $KYAULabs: visual_review.mjs kyau@aura.kyaulabs 2026/11/16 -0800 Exp $
 
 import {Buffer} from 'node:buffer';
 import {execFileSync} from 'node:child_process';
@@ -56,7 +56,10 @@ function validateState(state, stateIds) {
 }
 
 function validateCase(entry, baseUrl, caseIds) {
-	if (!exactKeys(entry, ['id', 'path', 'readySelector', 'states']) || !ID.test(entry.id) || caseIds.has(entry.id)) invalid();
+	const keys = ['id', 'path', 'readySelector', 'states'];
+	if (!exactKeys(entry, keys) && !exactKeys(entry, [...keys, 'captureSelector'])) invalid();
+	if (!ID.test(entry.id) || caseIds.has(entry.id)) invalid();
+	if (Object.hasOwn(entry, 'captureSelector') && !validSelector(entry.captureSelector)) invalid();
 	caseIds.add(entry.id);
 	if (typeof entry.path !== 'string' || !entry.path.startsWith('/') || entry.path.length > 512) invalid();
 	const url = new URL(entry.path, baseUrl);
@@ -65,7 +68,7 @@ function validateCase(entry, baseUrl, caseIds) {
 	if (!Array.isArray(entry.states) || entry.states.length === 0 || entry.states.length > 16) invalid();
 	const stateIds = new Set();
 	const states = entry.states.map((state) => validateState(state, stateIds));
-	return Object.freeze({id: entry.id, url: url.href, readySelector: entry.readySelector, states: Object.freeze(states)});
+	return Object.freeze({id: entry.id, url: url.href, readySelector: entry.readySelector, captureSelector: entry.captureSelector ?? null, states: Object.freeze(states)});
 }
 
 export function validateVisualReviewConfig(value) {
@@ -123,13 +126,13 @@ export function loadVisualReviewConfig(filePath = path.resolve('visual_review.js
 	return validateVisualReviewConfig(value);
 }
 
-export function expandVisualReviewCases(config) {
+export function expandVisualReviewCases(config, selection = {}) {
 	const viewports = [
 		['mobile', config.viewports.mobile],
 		['desktop', config.viewports.desktop],
 		['reflow', Object.freeze({width: 320, height: config.viewports.mobile.height})],
 	];
-	return Object.freeze(config.cases.flatMap((entry) => entry.states.flatMap((state) => viewports.map(([viewportId, viewport]) => Object.freeze({
+	const captures = config.cases.flatMap((entry) => entry.states.flatMap((state) => viewports.map(([viewportId, viewport]) => Object.freeze({
 		caseId: entry.id,
 		stateId: state.id,
 		viewportId,
@@ -137,8 +140,25 @@ export function expandVisualReviewCases(config) {
 		colorScheme: state.colorScheme,
 		url: entry.url,
 		readySelector: entry.readySelector,
+		captureSelector: entry.captureSelector,
 		actions: state.actions,
-	})))));
+	}))));
+	const filters = {cases: 'caseId', states: 'stateId', viewports: 'viewportId'};
+	if (selection === null || typeof selection !== 'object' || Array.isArray(selection) ||
+		Object.keys(selection).some((key) => !Object.hasOwn(filters, key))) {
+		throw new Error('visual review selection is invalid');
+	}
+	for (const [key, field] of Object.entries(filters)) {
+		const values = selection[key] === undefined ? [] : selection[key];
+		if (!Array.isArray(values) || values.length > 128 ||
+			values.some((value) => typeof value !== 'string' || !ID.test(value) || !captures.some((capture) => capture[field] === value))) {
+			throw new Error(`unknown or invalid visual review ${key}`);
+		}
+	}
+	const selected = captures.filter((capture) => Object.entries(filters).every(([key, field]) =>
+		!selection[key]?.length || selection[key].includes(capture[field])));
+	if (selected.length === 0) throw new Error('no matching visual review cases');
+	return Object.freeze(selected);
 }
 
 export function assertCaptureOrigin(actualUrl, configuredUrl) {
@@ -314,7 +334,21 @@ export async function publishVisualReviewEvidence(
 	filesystem = fs
 ) {
 	assertNoPageErrors(errors);
-	const image = await page.screenshot({fullPage: true, animations: 'disabled'});
+	// Use the prepared viewport instead of element/full-document capture, which
+	// can scroll or resize the page and lose an intentionally applied hover.
+	const clip = capture.captureSelector ? await page.locator(capture.captureSelector).evaluate((element) => {
+		const rect = element.getBoundingClientRect();
+		return {x: rect.x, y: rect.y, width: rect.width, height: rect.height};
+	}) : undefined;
+	if (clip) {
+		const viewport = page.viewportSize();
+		if (!viewport || Object.values(clip).some((value) => !Number.isFinite(value)) ||
+			clip.width <= 0 || clip.height <= 0 || clip.x < 0 || clip.y < 0 ||
+			clip.x + clip.width > viewport.width || clip.y + clip.height > viewport.height) {
+			throw new Error('visual review component must fit inside the viewport; use a smaller component or a full-page case');
+		}
+	}
+	const image = await page.screenshot({fullPage: !clip, animations: 'disabled', ...(clip ? {clip} : {})});
 	assertNoPageErrors(errors);
 	const outputs = evidencePaths(capture, root, filesystem);
 	const metadata = evidenceMetadata(capture, versions, revision);
@@ -341,7 +375,7 @@ export function evidenceMetadata(capture, versions, revision) {
 		browser: Object.freeze({name: 'chromium', version: versions.chromium}),
 		playwrightVersion: versions.playwright,
 		revision,
-		fullPage: true,
+		fullPage: !capture.captureSelector,
 	});
 }
 

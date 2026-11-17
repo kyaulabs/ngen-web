@@ -1,4 +1,4 @@
-// $KYAULabs: ui.test.js kyau@aura.kyaulabs 2026/11/13 -0800 Exp $
+// $KYAULabs: ui.test.js kyau@aura.kyaulabs 2026/11/16 -0800 Exp $
 import { FixtureSynth as Synth } from '../fixtures.js';
 import { readFileSync } from 'node:fs';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
@@ -45,6 +45,19 @@ describe('dashboard renderers', () => {
     expect(document.querySelector('#footer-sync').textContent).not.toBe('');
     UI.renderAll(data);
   });
+  it('puts browse tree first without redundant branch metadata labels', () => {
+    UI.renderBranches(data);
+    for (const card of document.querySelectorAll('.branch-card')) {
+      const meta = card.querySelector('.branch-meta');
+      expect(meta.textContent).not.toContain('HEAD pointer');
+      expect(meta.textContent).not.toContain('branch protection status');
+      expect(meta.textContent.trim().startsWith('browse tree')).toBe(true);
+      expect(meta.firstElementChild.getAttribute('href')).toContain('/tree/');
+      expect(card.querySelector('.branch-sha').getAttribute('href')).toContain('/commit/');
+      expect(card.querySelector('.tag-protected')).not.toBeNull();
+    }
+    expect(document.querySelectorAll('.tag-default')).toHaveLength(1);
+  });
   it('handles absent optional markup and missing repository fields', () => {
     UI.renderChips({ ...data, repo: { pushed_at: new Date().toISOString() } });
     expect(document.querySelector('#hero-chips').textContent).toContain('NOASSERTION');
@@ -61,6 +74,17 @@ describe('dashboard renderers', () => {
     ItemModal.init(); ContribModal.init();
     ItemModal.open({}, 'issue'); ContribModal.open('kyau');
     expect(document.body.innerHTML).toBe('');
+  });
+  it('omits the leading release logo picture while preserving the release notes', () => {
+    const logo = '<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/kyaulabs/ngen/v0.1.0/brand/logos/png/ngen-wordmark-dark-640.png"><img src="https://raw.githubusercontent.com/kyaulabs/ngen/v0.1.0/brand/logos/png/ngen-wordmark-light-640.png" width="400" alt="NGEN"></picture></p>';
+    const body = `${logo}\n\n## Highlights\n\nKeep **all notes** and [documentation](https://github.com/kyaulabs/ngen).`;
+    UI.renderReleases({ ...data, releases: [{ ...data.releases[0], body }] });
+    const notes = document.querySelector('.release-body .md-body');
+    expect(notes.firstElementChild.tagName).toBe('H2');
+    expect(notes.textContent).not.toContain('<picture>');
+    expect(notes.textContent).not.toContain('ngen-wordmark');
+    expect(notes.querySelector('strong').textContent).toBe('all notes');
+    expect(notes.querySelector('a').getAttribute('href')).toBe('https://github.com/kyaulabs/ngen');
   });
   it('toggles release notes without collapsing on notes or links', () => {
     UI.renderReleases(data);

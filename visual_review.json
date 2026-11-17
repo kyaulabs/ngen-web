@@ -25,6 +25,72 @@
         { "id": "tracker-closed-dark", "colorScheme": "dark", "actions": [{ "type": "click", "selector": "#issues-tabs [data-state=closed]" }, { "type": "click", "selector": "#prs-tabs [data-state=closed]" }] },
         { "id": "release-collapsed-dark", "colorScheme": "dark", "actions": [{ "type": "click", "selector": ".release-toggle" }, { "type": "wait-for-selector", "selector": ".release-card:not(.expanded)" }] }
       ]
+    },
+    {
+      "id": "branches",
+      "path": "/",
+      "readySelector": "body.loaded",
+      "captureSelector": "#branches",
+      "states": [
+        { "id": "dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": "#branches .sec-head" }] },
+        { "id": "offline-dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": "#branches .sec-head" }] }
+      ]
+    },
+    {
+      "id": "footer-links",
+      "path": "/",
+      "readySelector": "body.loaded",
+      "captureSelector": ".footer-grid",
+      "states": [
+        { "id": "dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": ".footer-mark" }] },
+        { "id": "link-hover-dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": ".footer-meta p:first-child a" }] }
+      ]
+    },
+    {
+      "id": "ticker-links",
+      "path": "/",
+      "readySelector": "body.loaded",
+      "captureSelector": ".ticker",
+      "states": [
+        { "id": "dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": ".ticker-label" }] }
+      ]
+    },
+    {
+      "id": "contributor-links",
+      "path": "/",
+      "readySelector": "body.loaded",
+      "captureSelector": ".contrib-commits",
+      "states": [
+        { "id": "dark", "colorScheme": "dark", "actions": [{ "type": "click", "selector": ".contrib-card" }, { "type": "wait-for-selector", "selector": ".contrib-commit" }, { "type": "hover", "selector": ".contrib-modal .pkg-modal-h:nth-of-type(2)" }] },
+        { "id": "commit-hover-dark", "colorScheme": "dark", "actions": [{ "type": "click", "selector": ".contrib-card" }, { "type": "wait-for-selector", "selector": ".contrib-commit" }, { "type": "hover", "selector": ".contrib-commit" }] }
+      ]
+    },
+    {
+      "id": "contributors",
+      "path": "/",
+      "readySelector": "body.loaded",
+      "captureSelector": "#contributors",
+      "states": [
+        { "id": "dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": "#contributors .sec-head" }] }
+      ]
+    },
+    {
+      "id": "footer-notice",
+      "path": "/",
+      "readySelector": "body.loaded",
+      "captureSelector": ".footer-legal",
+      "states": [
+        { "id": "dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": ".footer-legal" }] }
+      ]
+    },
+    {
+      "id": "releases",
+      "path": "/",
+      "readySelector": "body.loaded",
+      "captureSelector": "#releases .release-card",
+      "states": [
+        { "id": "dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": ".release-head" }] }
+      ]
     }
   ]
 }

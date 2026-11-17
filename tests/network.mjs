@@ -2,6 +2,11 @@ import { readFileSync } from 'node:fs';
 
 const snapshot = JSON.parse(readFileSync('data/snapshot.json', 'utf8'));
 const base = 'https://github.com/kyaulabs/ngen';
+const releaseLogo = '<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/kyaulabs/ngen/v0.1.0/brand/logos/png/ngen-wordmark-dark-640.png"><img src="https://raw.githubusercontent.com/kyaulabs/ngen/v0.1.0/brand/logos/png/ngen-wordmark-light-640.png" width="400" alt="NGEN"></picture></p>';
+const branchHeads = Object.fromEntries(snapshot.branches.map((branch) => [branch.sha, {
+  sha: branch.sha,
+  commit: { committer: { date: branch.name === 'main' ? '2026-11-02T04:27:04Z' : '2026-11-16T23:15:16Z' } },
+}]));
 const issue = { number: 12, title: 'Review orbital navigation', state: 'open', html_url: `${base}/issues/12`, user: { login: 'kyau', html_url: 'https://github.com/kyau' }, labels: [{ name: 'feature', color: '63ddf8' }], created_at: '2026-11-01T00:00:00Z', updated_at: '2026-11-12T00:00:00Z', body: '## Summary\nControlled browser fixture.\n## Verification\n<script>window.injected = true</script>\n[javascript](javascript:alert(1))' };
 
 export async function controlNetwork(page, offline = false) {
@@ -23,7 +28,8 @@ export async function controlNetwork(page, offline = false) {
     if (url.pathname.endsWith('/branches')) data = snapshot.branches.map((branch) => ({ ...branch, commit: { sha: branch.sha } }));
     if (url.pathname.endsWith('/participation')) data = { all: Array.from({ length: 52 }, (_, i) => i < 40 ? 0 : (i * 17) % 61) };
     if (url.pathname.endsWith('/commits')) data = [{ sha: 'abcdef0123456789', html_url: `${base}/commit/abcdef0`, commit: { message: 'feat(engine): controlled test fixture', author: { date: '2026-11-12T00:00:00Z' } } }];
-    if (url.pathname.endsWith('/releases')) data = [{ tag_name: 'v0.1.0-fixture', name: 'Browser test fixture', body: '## Notes\nControlled release data for browser verification.', published_at: '2026-11-12T00:00:00Z', html_url: `${base}/releases` }];
+    if (url.pathname.startsWith('/repos/kyaulabs/ngen/commits/')) data = branchHeads[url.pathname.split('/').pop()] || [];
+    if (url.pathname.endsWith('/releases')) data = [{ tag_name: 'v0.1.0-fixture', name: 'Browser test fixture', body: `${releaseLogo}\n\n## Notes\nControlled release data for browser verification.`, published_at: '2026-11-12T00:00:00Z', html_url: `${base}/releases` }];
     if (url.pathname.endsWith('/issues')) data = [{ ...issue, state: url.searchParams.get('state') }];
     if (url.pathname.endsWith('/pulls')) data = [{ ...issue, number: 13, state: url.searchParams.get('state'), html_url: `${base}/pull/13`, head: { ref: 'feature' }, base: { ref: 'develop' } }];
     if (url.pathname === '/search/issues') data = { total_count: 1 };

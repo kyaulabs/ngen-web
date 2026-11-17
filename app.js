@@ -317,6 +317,15 @@ const Utils = {
  * from upstream release bodies can ever reach the DOM.
  * ------------------------------------------------------------------------- */
 const Markdown = {
+  /** Render release notes without their redundant leading NGEN logo block. */
+  renderRelease(src) {
+    const source = String(src || '');
+    const banner = /^\s*<p\b[^>]*>\s*<picture\b[^>]*>[\s\S]*?<\/picture>\s*<\/p>\s*/i.exec(source);
+    const notes = banner && /\/brand\/logos\/(?:png|svg)\/ngen-/i.test(banner[0])
+      ? source.slice(banner[0].length) : source;
+    return this.render(notes);
+  },
+
   /**
    * Render markdown source to an HTML string.
    * @param {string} src
@@ -845,6 +854,20 @@ const API = {
         }))
       : SNAPSHOT.branches.map((b) => ({ ...b, isDefault: b.name === repo.default_branch })))
       .filter((b) => !Utils.isReleaseBranch(b.name));
+
+    /* A repository push can affect any branch. Use each listed HEAD's
+       committer date instead; missing metadata stays unavailable. */
+    if (Array.isArray(R.branches) && R.branches.length) {
+      await Promise.all(branches.map(async (branch) => {
+        if (!branch.sha) return;
+        try {
+          const head = (Array.isArray(R.commits) && R.commits.find((c) => c.sha === branch.sha))
+            || await this.fetchJSON(`/commits/${encodeURIComponent(branch.sha)}`);
+          const date = head?.commit?.committer?.date;
+          if (typeof date === 'string' && Number.isFinite(Date.parse(date))) branch.committedAt = date;
+        } catch (e) { /* Leave this branch's time unavailable without hiding other branches. */ }
+      }));
+    }
 
     /* Preserve full release notes. Empty feeds remain empty; failures are labeled. */
     const liveReleases = Array.isArray(R.releases)
@@ -1463,9 +1486,8 @@ const UI = {
         </div>
         <a class="branch-sha" href="${base}/commit/${Utils.esc(b.sha)}" target="_blank" rel="noopener" title="View HEAD commit">${Utils.esc(b.sha.slice(0, 7))}</a>
         <p class="branch-meta">
-          HEAD pointer · branch protection status
-          ${b.isDefault ? ` · pushed ${Utils.timeAgo(data.repo.pushed_at)}` : ''}
-          · <a href="${base}/tree/${Utils.esc(b.name)}" target="_blank" rel="noopener">browse tree</a>
+          <a href="${base}/tree/${Utils.esc(b.name)}" target="_blank" rel="noopener">browse tree</a>
+          ${b.committedAt ? ` · <time datetime="${Utils.esc(b.committedAt)}">committed ${Utils.timeAgo(b.committedAt)}</time>` : ''}
         </p>
       </article>`).join('') || '<p class="empty-note">// no branch data</p>';
   },
@@ -1501,7 +1523,7 @@ const UI = {
           </div>
           <div class="release-body" id="release-body-${i}">
             <div class="release-body-inner">
-              <div class="md-body">${Markdown.render(r.body)}</div>
+              <div class="md-body">${Markdown.renderRelease(r.body)}</div>
             </div>
           </div>
         </article>

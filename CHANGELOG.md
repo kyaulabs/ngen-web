@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.\
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines
 and [Semantic Versioning](https://semver.org/spec/v2.0.0.html) for versioning adherance.
 
+## [💾](https://github.com/kyaulabs/ngen-web/releases/tag/v0.1.9) [0.1.9](https://github.com/kyaulabs/ngen-web/compare/v0.1.8...v0.1.9) - (2026-11-17)
+
+### ⚗️ Testing
+
+- [Visual] Add reusable component review tooling ([dfdb17a](https://github.com/kyaulabs/ngen-web/commit/dfdb17ae07ee770f8f6aff5154dd9d1332721f18))
+
+### 🐛 Bug Fixes
+
+- [Branches] Show head commit times and simplify metadata ([c8b0f42](https://github.com/kyaulabs/ngen-web/commit/c8b0f42a4fa9b92f13af92f867efd148b7adad62))
+- [Releases] Omit redundant leading logo markup ([0bac422](https://github.com/kyaulabs/ngen-web/commit/0bac422d6fa416c88fc6d348b442c52c0055642a))
+- [Ui] Restore prism link hierarchy and profile alignment ([2e3351b](https://github.com/kyaulabs/ngen-web/commit/2e3351b462552afe74fa4640008d156da608d89a))
+- [Ui] Integrate branch activity and release refinements (#33) ([e69b004](https://github.com/kyaulabs/ngen-web/commit/e69b0043c839cadb3e65a9d6d71de8984e5fb65c))
+
+### 💄 Styling
+
+- [Ui] Restore prism primary text color ([1d2d561](https://github.com/kyaulabs/ngen-web/commit/1d2d561bfdc0041594d4750621ea4855f521a8b0))
+<!-- Auto-generated on 2026-11-16T19:09:01.335347389-08:00 -->
 ## [💾](https://github.com/kyaulabs/ngen-web/releases/tag/v0.1.8) [0.1.8](https://github.com/kyaulabs/ngen-web/compare/v0.1.7...v0.1.8) - (2026-11-16)
 
 ### 🐛 Bug Fixes

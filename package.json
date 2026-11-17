@@ -1,6 +1,6 @@
 {
   "name": "@kyaulabs/ngen-web",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "private": true,
   "engines": {
     "node": ">=24"
@@ -14,6 +14,7 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "npm run build && playwright test",
+    "test:visual": "node tools/visual-review.mjs",
     "check": "npm run lint && npm run test:coverage && npm run test:e2e"
   },
   "devDependencies": {
