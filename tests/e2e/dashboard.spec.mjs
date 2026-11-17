@@ -79,9 +79,9 @@ test('sizes and aligns the profile chevron like Prism punctuation', async ({ pag
   expect(Math.abs(metrics.iconCenter - metrics.referenceCenter), JSON.stringify(metrics)).toBeLessThanOrEqual(1);
 });
 
-test('darkens primary text by eight percent without changing neutral links', async ({ page }) => {
+test('matches Prism primary text without changing neutral links', async ({ page }) => {
   await load(page);
-  expect(await paintedColor(page.locator('body'), 'color')).toEqual([215, 223, 235, 255]);
+  expect(await paintedColor(page.locator('body'), 'color')).toEqual([234, 242, 255, 255]);
   await expect(page.locator('.branch-meta a').first()).toHaveCSS('color', 'rgb(164, 181, 207)');
 });
 
@@ -509,7 +509,7 @@ test('ignores saved light mode and system color preferences without exposing a t
   await load(page);
   await expect(page.locator('html')).toHaveCSS('color-scheme', 'dark');
   await expect(page.locator('#theme-toggle')).toHaveCount(0);
-  expect(await paintedColor(page.locator('body'), 'color')).toEqual([215, 223, 235, 255]);
+  expect(await paintedColor(page.locator('body'), 'color')).toEqual([234, 242, 255, 255]);
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.reload();
   await expect(page.locator('body')).toHaveClass(/loaded/);
@@ -546,8 +546,8 @@ test('keeps viewport-sized space behind the dashboard with an opaque footer', as
   expect(await background.boundingBox()).toEqual(original);
   await expect(page.locator('.nav')).not.toHaveClass(/over-hero/);
   await expect(page.locator('.nav .brand-mark')).toHaveAttribute('src', 'brand/logos/svg/ngen-wordmark-dark.svg');
-  expect(await paintedColor(page.locator('#activity h2'), 'color')).toEqual([215, 223, 235, 255]);
-  expect(await paintedColor(page.locator('#activity .panel'), 'color')).toEqual([215, 223, 235, 255]);
+  expect(await paintedColor(page.locator('#activity h2'), 'color')).toEqual([234, 242, 255, 255]);
+  expect(await paintedColor(page.locator('#activity .panel'), 'color')).toEqual([234, 242, 255, 255]);
   expect((await paintedColor(page.locator('.footer')))[3]).toBe(255);
   await page.locator('.footer').scrollIntoViewIfNeeded();
   expect(await background.boundingBox()).toEqual(original);
