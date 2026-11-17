@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.\
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines
 and [Semantic Versioning](https://semver.org/spec/v2.0.0.html) for versioning adherance.
 
+## [💾](https://github.com/kyaulabs/ngen-web/releases/tag/v0.1.12) [0.1.12](https://github.com/kyaulabs/ngen-web/compare/v0.1.11...v0.1.12) - (2026-11-17)
+
+### 🐛 Bug Fixes
+
+- [Releases] Align copy controls and header labels ([b8b4f45](https://github.com/kyaulabs/ngen-web/commit/b8b4f450b489ab0c96fa4e7f65546ccdff9e7c52))
+<!-- Auto-generated on 2026-11-17T08:58:32.518683117-08:00 -->
 ## [💾](https://github.com/kyaulabs/ngen-web/releases/tag/v0.1.11) [0.1.11](https://github.com/kyaulabs/ngen-web/compare/v0.1.10...v0.1.11) - (2026-11-17)
 
 ### 🚀 Features
