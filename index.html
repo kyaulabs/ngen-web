@@ -14,10 +14,10 @@
   <link rel="preload" href="brand/web/fonts/NeoSansPro-Regular.ttf" as="font" type="font/ttf" crossorigin />
   <link rel="preload" href="brand/web/fonts/NeoSansPro-Bold.ttf" as="font" type="font/ttf" crossorigin />
   <link rel="preload" href="brand/web/fonts/OperatorMonoLigNerdFont-Regular.otf" as="font" type="font/otf" crossorigin />
-  <link rel="stylesheet" href="styles.min.css?v=0.1.10" />
+  <link rel="stylesheet" href="styles.min.css?v=0.1.11" />
   <script src="vendor/d3.min.js" defer></script>
-  <script src="space.min.js?v=0.1.10" defer></script>
-  <script src="app.min.js?v=0.1.10" defer></script>
+  <script src="space.min.js?v=0.1.11" defer></script>
+  <script src="app.min.js?v=0.1.11" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -29,7 +29,7 @@
       <span class="brand-sub">// kyaulabs</span>
     </a>
     <nav class="nav-links" aria-label="Sections">
-      <a href="#vitals">Vitals</a><a href="#games">Games</a><a href="#activity">Activity</a><a href="#matrix">Matrix</a><a href="#branches">Branches</a><a href="#releases">Releases</a><a href="#tracker">Tracker</a><a href="#contributors">Contributors</a>
+      <a href="#vitals">Vitals</a><a href="#games">Games</a><a href="#activity">Activity</a><a href="#matrix">Matrix</a><a href="#branches">Branches</a><a href="#milestones">Milestones</a><a href="#releases">Releases</a><a href="#tracker">Tracker</a><a href="#contributors">Contributors</a>
     </nav>
     <div class="nav-actions">
       <span id="feed-badge" class="badge badge-live" title="Data feed status"><span class="badge-dot" aria-hidden="true"></span><span id="feed-badge-text">SYNC</span></span>
@@ -94,19 +94,24 @@
     </section>
     <section class="section" id="matrix"><header class="sec-head reveal"><span class="kicker">[ 05 // MATRIX ]</span><h2>Commit Matrix <span class="h2-sub">— 52 week lattice</span></h2><p class="sec-sub">Daily commits on the default branch, by UTC committer date. Each cell represents one day.</p></header><div class="panel panel-chart reveal"><div class="chart-mount chart-mount-heat" id="chart-heatmap" role="img" aria-label="Daily default-branch commits by UTC committer date"></div></div></section>
     <section class="section" id="branches"><header class="sec-head reveal"><span class="kicker">[ 06 // TOPOLOGY ]</span><h2>Branches</h2><p class="sec-sub">Repository topology — HEAD commits, authors, protection and checks.</p></header><div class="branch-list" id="branches-list"><article class="panel skeleton-panel branch-card"></article></div></section>
-    <section class="section" id="releases"><header class="sec-head reveal"><span class="kicker">[ 07 // DEPLOY LOG ]</span><h2>Release Timeline</h2><p class="sec-sub">Versioned releases in chronological order. Expand a release to read its full notes. <span id="releases-note"></span></p></header><div class="timeline" id="releases-list"><article class="panel skeleton-panel release-card"></article></div></section>
+    <section class="section" id="milestones">
+      <header class="sec-head reveal"><span class="kicker">[ 07 // ROADMAP ]</span><h2>Milestones</h2><p class="sec-sub">Engine milestones and project objectives. Progress follows public GitHub issue and board states.</p></header>
+      <div class="panel roadmap-panel reveal"><div class="term-bar"><span class="term-dot"></span><span class="term-dot"></span><span class="term-dot"></span><span class="term-title">ngen — roadmap</span></div><div id="roadmap-content" class="roadmap-content"><p class="empty-note">View <a href="https://github.com/kyaulabs/ngen/milestones" target="_blank" rel="noopener">GitHub milestones</a> or the <a href="https://github.com/orgs/kyaulabs/projects/4/views/3" target="_blank" rel="noopener">public project board</a>. Live progress requires JavaScript.</p></div></div>
+    </section>
+    <section class="section" id="releases"><header class="sec-head reveal"><span class="kicker">[ 08 // DEPLOY LOG ]</span><h2>Release Timeline</h2><p class="sec-sub">Versioned releases in chronological order. Expand a release to read its full notes. <span id="releases-note"></span></p></header><div class="timeline" id="releases-list"><article class="panel skeleton-panel release-card"></article></div></section>
     <section class="section" id="tracker">
-      <header class="sec-head reveal"><span class="kicker">[ 08 // TRACKER ]</span><h2>Issues &amp; Pull Requests</h2><p class="sec-sub">Open and recently closed work items. Activate any row for the full record.</p></header>
+      <header class="sec-head reveal"><span class="kicker">[ 09 // TRACKER ]</span><h2>Issues &amp; Pull Requests</h2><p class="sec-sub">Open and recently closed work items. Activate any row for the full record.</p></header>
       <div class="grid-tracker">
         <div class="panel term reveal"><div class="term-bar"><span class="term-dot"></span><span class="term-dot"></span><span class="term-dot"></span><span class="term-title">ngen — issues</span><span class="term-count" id="issues-count-badge">—</span></div><div class="pkg-tabs tracker-tabs" id="issues-tabs" role="tablist" aria-label="Filter issues by state"><button class="pkg-tab tracker-tab active" type="button" role="tab" aria-selected="true" data-state="open">Open<span class="tracker-tab-n">—</span></button><button class="pkg-tab tracker-tab" type="button" role="tab" aria-selected="false" data-state="closed">Closed<span class="tracker-tab-n">—</span></button></div><ul class="term-list" id="issues-list"></ul></div>
         <div class="panel term reveal"><div class="term-bar"><span class="term-dot"></span><span class="term-dot"></span><span class="term-dot"></span><span class="term-title">ngen — pull requests</span><span class="term-count" id="prs-count-badge">—</span></div><div class="pkg-tabs tracker-tabs" id="prs-tabs" role="tablist" aria-label="Filter pull requests by state"><button class="pkg-tab tracker-tab active" type="button" role="tab" aria-selected="true" data-state="open">Open<span class="tracker-tab-n">—</span></button><button class="pkg-tab tracker-tab" type="button" role="tab" aria-selected="false" data-state="closed">Closed<span class="tracker-tab-n">—</span></button></div><ul class="term-list" id="prs-list"></ul></div>
       </div>
     </section>
-    <section class="section" id="contributors"><header class="sec-head reveal"><span class="kicker">[ 09 // OPERATORS ]</span><h2>Contributors</h2><p class="sec-sub">Repository contributors ranked by commits on the default branch.</p></header><div class="grid-contrib" id="contributors-list"><article class="panel skeleton-panel contrib-card"></article></div></section>
+    <section class="section" id="contributors"><header class="sec-head reveal"><span class="kicker">[ 10 // OPERATORS ]</span><h2>Contributors</h2><p class="sec-sub">Repository contributors ranked by commits on the default branch.</p></header><div class="grid-contrib" id="contributors-list"><article class="panel skeleton-panel contrib-card"></article></div></section>
   </main>
   <footer class="footer"><div class="footer-grid"><div><img class="brand-mark footer-mark" src="brand/logos/svg/ngen-wordmark-dark.svg" alt="NGEN logo" /><p class="footer-line">NGEN — a C++20 game engine for space simulation.<br />Engineered by <a href="https://kyaulabs.com" target="_blank" rel="noopener">KYAU Labs</a>. Licensed AGPL-3.0.</p></div><div class="footer-meta"><p>TELEMETRY SOURCE: <a href="https://github.com/kyaulabs/ngen" target="_blank" rel="noopener">api.github.com/repos/kyaulabs/ngen</a></p><p>LAST SYNC: <span id="footer-sync">—</span></p><p>DATA VISUALIZATION: <a href="https://d3js.org" target="_blank" rel="noopener">D3.js v7</a></p><p>BACKGROUND: NGEN orbital schematic</p></div></div><p class="footer-legal">No cookies or tracking. GitHub supplies public repository metadata; your browser stores a short-lived data cache.</p></footer>
   <div class="pkg-modal-overlay" id="item-modal" hidden><div class="pkg-modal item-modal panel" role="dialog" aria-modal="true" aria-labelledby="item-modal-title" tabindex="-1"></div></div>
   <div class="pkg-modal-overlay" id="contrib-modal" hidden><div class="pkg-modal contrib-modal panel" role="dialog" aria-modal="true" aria-labelledby="contrib-modal-title" tabindex="-1"></div></div>
+  <div class="pkg-modal-overlay" id="release-changelog-modal" hidden><div class="pkg-modal release-changelog-modal panel" role="dialog" aria-modal="true" aria-labelledby="release-changelog-title" tabindex="-1"></div></div>
   <div id="chart-tip" class="chart-tip" role="status" aria-live="polite"></div>
   <noscript><div class="noscript-warn">NGEN telemetry requires JavaScript. The engine source and Games directory remain available above.</div></noscript>
 </body>
