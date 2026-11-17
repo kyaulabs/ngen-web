@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.\
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines
 and [Semantic Versioning](https://semver.org/spec/v2.0.0.html) for versioning adherance.
 
+## [💾](https://github.com/kyaulabs/ngen-web/releases/tag/v0.1.11) [0.1.11](https://github.com/kyaulabs/ngen-web/compare/v0.1.10...v0.1.11) - (2026-11-17)
+
+### 🚀 Features
+
+- [Dashboard] Add milestone quests and release detail controls ([0946955](https://github.com/kyaulabs/ngen-web/commit/09469552a4ca8b601f406c484eaf8586cb7f52e0))
+<!-- Auto-generated on 2026-11-17T08:07:59.442144119-08:00 -->
 ## [💾](https://github.com/kyaulabs/ngen-web/releases/tag/v0.1.10) [0.1.10](https://github.com/kyaulabs/ngen-web/compare/v0.1.9...v0.1.10) - (2026-11-17)
 
 ### 🐛 Bug Fixes
