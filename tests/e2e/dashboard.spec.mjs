@@ -211,6 +211,43 @@ test('opens a contributor-themed changelog dialog without toggling the release',
   await expect(dialog).toBeHidden();
 });
 
+test('centers release badge labels on the title ink rather than their font line boxes', async ({ page }) => {
+  for (const width of [1920, 1024]) {
+    await page.setViewportSize({ width, height: 1080 });
+    await load(page);
+    const geometry = await page.locator('.release-head').evaluate((header) => {
+      const title = header.querySelector('.release-title');
+      const range = document.createRange();
+      range.selectNodeContents(title);
+      const context = document.createElement('canvas').getContext('2d');
+      context.font = getComputedStyle(title).font;
+      const metrics = context.measureText(title.textContent);
+      const baseline = range.getBoundingClientRect().top + metrics.fontBoundingBoxAscent;
+      return {
+        title: baseline + (metrics.actualBoundingBoxDescent - metrics.actualBoundingBoxAscent) / 2,
+        badges: [...header.querySelectorAll('.badge-latest, .release-changelog')].map((badge) => {
+          range.selectNodeContents(badge);
+          context.font = getComputedStyle(badge).font;
+          const ink = context.measureText(badge.textContent.trim());
+          return range.getBoundingClientRect().top + ink.fontBoundingBoxAscent
+            + (ink.actualBoundingBoxDescent - ink.actualBoundingBoxAscent) / 2;
+        }),
+      };
+    });
+    for (const center of geometry.badges) expect(Math.abs(center - geometry.title), `${width}px title/badge ink alignment: ${JSON.stringify(geometry)}`).toBeLessThanOrEqual(0.25);
+  }
+});
+
+test('uses neutral link ink for Changelog at rest and preserves its accent hover', async ({ page }) => {
+  await load(page);
+  const trigger = page.locator('.release-changelog');
+  expect(await paintedColor(trigger, 'color')).toEqual([164, 181, 207, 255]);
+  await trigger.hover();
+  await expect.poll(() => paintedColor(trigger, 'color')).toEqual([34, 211, 238, 255]);
+  await page.mouse.move(0, 0);
+  await expect.poll(() => paintedColor(trigger, 'color')).toEqual([164, 181, 207, 255]);
+});
+
 test('keeps the changelog control immediately beside Latest when release headers reflow', async ({ page }) => {
   for (const width of [390, 320]) {
     await page.setViewportSize({ width, height: 844 });
@@ -219,6 +256,20 @@ test('keeps the changelog control immediately beside Latest when release headers
     const button = await page.locator('.release-changelog').boundingBox();
     expect(Math.abs(badge.y + badge.height / 2 - button.y - button.height / 2)).toBeLessThanOrEqual(1);
     expect(button.x).toBeGreaterThanOrEqual(badge.x + badge.width);
+  }
+});
+
+test('top-aligns multiline release copy controls without moving single-line command centers', async ({ page }) => {
+  for (const width of [1920, 390, 320]) {
+    await page.setViewportSize({ width, height: width === 1920 ? 1080 : 844 });
+    await load(page);
+    const blocks = page.locator('.release-body .release-code');
+    const text = await blocks.first().locator('pre').boundingBox();
+    const copy = await blocks.first().locator('button').boundingBox();
+    expect(Math.abs(copy.y - text.y), `${width}px multiline copy top`).toBeLessThanOrEqual(1);
+    const single = await blocks.nth(1).locator('pre').boundingBox();
+    const singleCopy = await blocks.nth(1).locator('button').boundingBox();
+    expect(Math.abs(single.y + single.height / 2 - singleCopy.y - singleCopy.height / 2), `${width}px single-line center`).toBeLessThanOrEqual(1);
   }
 });
 
