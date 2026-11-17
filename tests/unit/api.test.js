@@ -85,7 +85,7 @@ describe('branch commit times', () => {
     });
     document.body.innerHTML = '<div id="branches-list"></div>';
     UI.renderBranches(await API.loadAll());
-    const metadata = [...document.querySelectorAll('.branch-meta')].map((el) => el.textContent.replace(/\s+/g, ' ').trim());
+    const metadata = [...document.querySelectorAll('.branch-history')].map((el) => el.textContent.replace(/\s+/g, ' ').trim());
     expect(metadata).toEqual(['browse tree · committed 14d ago', 'browse tree · committed 1h ago']);
     expect(fetch.mock.calls.some(([url]) => new URL(url).pathname.endsWith(`/commits/${main.sha}`))).toBe(false);
     expect(fetch.mock.calls.some(([url]) => new URL(url).pathname.endsWith(`/commits/${develop.sha}`))).toBe(true);
@@ -113,7 +113,7 @@ describe('branch commit times', () => {
     expect(cards).toHaveLength(2);
     expect(cards[0].querySelector('time').dateTime).toBe('2026-11-02T12:00:00Z');
     expect(cards[1].querySelector('time')).toBeNull();
-    expect(cards[1].querySelector('.branch-meta').textContent.trim()).toBe('browse tree');
+    expect(cards[1].querySelector('.branch-history').textContent.trim()).toBe('browse tree');
   });
 });
 
@@ -128,6 +128,35 @@ describe('data aggregation', () => {
     expect(data.days).toHaveLength(364);
     expect(data.counts).toEqual(SNAPSHOT.counts);
     expect(data.releasesSynthetic).toBe(true);
+  });
+  it('counts all 163 default-branch commits across pages instead of stale participation data', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-11-17T12:00:00Z'));
+    const commits = Array.from({ length: 163 }, (_, index) => ({
+      sha: (index + 1).toString(16).padStart(40, '0'),
+      parents: index < 13 ? [{ sha: 'a' }, { sha: 'b' }] : [{ sha: 'a' }],
+      author: { login: index < 10 ? 'kyaulabs-bot' : 'kyau' },
+      commit: { committer: { date: index < 10 ? '2026-11-16T10:00:00Z' : '2026-11-02T10:00:00Z' } },
+    }));
+    fetch.mockImplementation(async (input) => {
+      const url = new URL(input);
+      if (url.pathname === '/repos/kyaulabs/ngen') return response(SNAPSHOT.repo);
+      if (url.pathname.endsWith('/branches')) return response([{ name: 'main', commit: { sha: commits[0].sha } }]);
+      if (url.pathname.endsWith('/participation')) return response({ all: [...Array(49).fill(0), 1, 0, 0] });
+      if (url.pathname.endsWith('/commits')) {
+        if (!url.searchParams.has('sha')) return response(commits.slice(0, 14));
+        expect(url.searchParams.get('sha')).toBe(commits[0].sha);
+        const page = Number(url.searchParams.get('page'));
+        return response(commits.slice((page - 1) * 100, page * 100));
+      }
+      return response([]);
+    });
+    const data = await API.loadAll();
+    expect(data.activityAvailable).toBe(true);
+    expect(data.days.reduce((sum, day) => sum + day.count, 0)).toBe(163);
+    expect(data.weekly.slice(-3)).toEqual([153, 0, 10]);
+    expect(data.days.filter((day) => day.count).map((day) => [day.date.toISOString().slice(0, 10), day.count]))
+      .toEqual([['2026-11-02', 153], ['2026-11-16', 10]]);
+    expect(fetch.mock.calls.some(([url]) => new URL(url).searchParams.get('page') === '2')).toBe(true);
   });
   it('normalizes live responses, removes bots and release branches', async () => {
     vi.spyOn(API, 'fetchCount').mockResolvedValue(1);

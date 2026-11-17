@@ -29,7 +29,7 @@ for (const capture of captures) {
 		});
 		try {
 			const page = await context.newPage();
-			await controlNetwork(page, capture.stateId.startsWith('offline'));
+			await controlNetwork(page, capture.stateId.startsWith('offline'), capture.stateId);
 			page.on('console', (message) => {
 				if (message.type() === 'error') errors.push(message.text());
 			});

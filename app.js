@@ -10,7 +10,6 @@
 const CONFIG = {
   owner: 'kyaulabs',          // GitHub organization
   repo: 'ngen',              // repository name
-  repoId: 0x4e47454e,         // stable NGEN seed for the estimated daily matrix
   apiBase: 'https://api.github.com',
   cacheKey: 'ngen.telemetry.v1.',  // sessionStorage namespace prefix
   cacheTTLms: 10 * 60 * 1000,       // 10 minute cache lifetime
@@ -251,10 +250,11 @@ const Utils = {
   /**
    * Long date for tooltips: "Mon, Jul 21 2026".
    * @param {Date} d
+   * @param {string} [timeZone] - Calendar timezone; defaults to the viewer's.
    * @returns {string}
    */
-  fmtDate(d) {
-    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+  fmtDate(d, timeZone) {
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', timeZone });
   },
 
   /** Short month-year: "Jul 2026". */
@@ -616,51 +616,39 @@ const Tip = {
 };
 
 /* ----------------------------------------------------------------------------
- * Synth — estimated daily allocation for the explicitly labeled matrix.
- * Never generates repository records.
+ * Activity — exact UTC committer-date counts from default-branch history.
  * ------------------------------------------------------------------------- */
-const Synth = {
-  /**
-   * Distribute each week's commit total across its 7 days so the heatmap has
-   * a plausible daily texture while preserving the *real* weekly totals.
-   * Deterministic: seeded per week index.
-   * @param {number[]} weekly - 52 weekly totals, oldest first.
-   * @returns {Array<{date: Date, count: number, future: boolean}>} 364 day cells.
-   */
-  daysFromWeekly(weekly) {
+const Activity = {
+  /** Build 52 Sunday-first weeks, including merges; never allocate estimates. */
+  fromCommits(commits, timestamp = Date.now()) {
     const DAY = 864e5;
-    const now = new Date();
-    const utcToday = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-    const endSunday = utcToday - new Date(utcToday).getUTCDay() * DAY;
-    const firstSunday = endSunday - (weekly.length - 1) * 7 * DAY;
-    const weights = [0.35, 1.25, 1.3, 1.2, 1.1, 0.9, 0.45]; // Sun..Sat
-
-    const days = [];
-    for (let w = 0; w < weekly.length; w++) {
-      const rng = Utils.mulberry32(CONFIG.repoId + w * 97);
-      const jitter = weights.map((wt) => wt * (0.55 + rng() * 0.9));
-      const sum = jitter.reduce((a, b) => a + b, 0) || 1;
-      /* Largest-remainder integer allocation of this week's total. */
-      const raw = jitter.map((j) => (j / sum) * weekly[w]);
-      const ints = raw.map(Math.floor);
-      let rest = weekly[w] - ints.reduce((a, b) => a + b, 0);
-      const order = raw.map((r, i) => [r - ints[i], i]).sort((a, b) => b[0] - a[0]);
-      for (let k = 0; k < order.length && rest > 0; k++, rest--) ints[order[k][1]]++;
-
-      for (let d = 0; d < 7; d++) {
-        const date = new Date(firstSunday + (w * 7 + d) * DAY);
-        days.push({ date, count: ints[d], future: date.getTime() > utcToday });
+    const now = new Date(timestamp);
+    const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+    const start = today - (new Date(today).getUTCDay() + 51 * 7) * DAY;
+    const days = Array.from({ length: 364 }, (_, index) => ({
+      date: new Date(start + index * DAY), count: 0, future: start + index * DAY > today,
+    }));
+    const seen = new Set();
+    for (const commit of commits) {
+      const date = commit?.commit?.committer?.date;
+      if (!/^[a-f0-9]{40}$/i.test(commit?.sha || '') || typeof date !== 'string' || !Number.isFinite(Date.parse(date))) {
+        throw new Error('Invalid commit history');
       }
+      if (seen.has(commit.sha)) continue;
+      seen.add(commit.sha);
+      const index = Math.floor((Date.parse(date) - start) / DAY);
+      if (index >= 0 && index < days.length && !days[index].future) days[index].count++;
     }
-    return days;
+    const weekly = Array.from({ length: 52 }, (_, week) =>
+      days.slice(week * 7, week * 7 + 7).reduce((sum, day) => sum + day.count, 0));
+    return { days, weekly };
   },
-
 };
 
 /* ----------------------------------------------------------------------------
  * API — GitHub REST layer.
  *
- * Every getter is: live fetch → sessionStorage cache → SNAPSHOT/Synth.
+ * Core metadata falls back to the dated snapshot; missing feeds stay missing.
  * loadAll() settles all requests in parallel and merges whatever succeeded.
  * ------------------------------------------------------------------------- */
 const API = {
@@ -790,13 +778,61 @@ const API = {
     };
   },
 
+  /** Aggregate latest HEAD checks and legacy statuses; incomplete results are unknown. */
+  async fetchChecks(sha) {
+    const base = `/commits/${encodeURIComponent(sha)}`;
+    const [runs, statuses] = await Promise.all([
+      this.fetchJSON(`${base}/check-runs?per_page=100&filter=latest`),
+      this.fetchJSON(`${base}/status?per_page=100`),
+    ]);
+    if (![ [runs, 'check_runs'], [statuses, 'statuses'] ].every(([body, key]) =>
+      Array.isArray(body?.[key]) && body[key].length <= 100
+      && Number.isInteger(body.total_count) && body.total_count === body[key].length)) {
+      throw new Error('Incomplete checks');
+    }
+    const states = runs.check_runs.map((run) => run?.status === 'completed' ? run.conclusion
+      : ['queued', 'in_progress', 'pending', 'waiting', 'requested'].includes(run?.status) ? 'pending' : 'unknown')
+      .concat(statuses.statuses.map((status) => status?.state));
+    const passed = ['success', 'neutral', 'skipped'];
+    const failed = ['failure', 'timed_out', 'action_required', 'startup_failure', 'error'];
+    const cancelled = ['cancelled', 'stale'];
+    if (states.some((state) => ![...passed, ...failed, ...cancelled, 'pending'].includes(state))) {
+      throw new Error('Unrecognized checks');
+    }
+    return {
+      state: !states.length ? 'none' : states.some((state) => failed.includes(state)) ? 'failure'
+        : states.includes('pending') ? 'pending' : states.some((state) => cancelled.includes(state)) ? 'neutral' : 'success',
+      passed: states.filter((state) => passed.includes(state)).length,
+      total: states.length,
+    };
+  },
+
+  /** Fetch complete, SHA-pinned history for the chart window, at most 1,000 commits. */
+  async fetchActivity(sha) {
+    const now = Date.now();
+    const calendar = Activity.fromCommits([], now);
+    const today = calendar.days.findLast((day) => !day.future).date.getTime();
+    const query = new URLSearchParams({
+      sha, since: calendar.days[0].date.toISOString(),
+      until: new Date(today + 864e5).toISOString(), per_page: '100',
+    });
+    const commits = [];
+    for (let page = 1; page <= 10; page++) {
+      const batch = await this.fetchJSON(`/commits?${query}&page=${page}`);
+      if (!Array.isArray(batch) || batch.length > 100) throw new Error('Invalid commit history page');
+      commits.push(...batch);
+      if (batch.length < 100) return Activity.fromCommits(commits, now);
+    }
+    throw new Error('Commit history exceeds the complete-history limit');
+  },
+
   /** Safely unwrap a PromiseSettledResult. @returns {any|null} */
   _ok(r) { return r.status === 'fulfilled' ? r.value : null; },
 
   /**
    * Load every dataset in parallel and merge into the normalized DATA object
-   * consumed by the renderers. Individual failures fall back to SNAPSHOT or
-   * Synth content; `mode` reports whether the core feed is live.
+   * consumed by the renderers. Core metadata can use SNAPSHOT; failed feeds
+   * never fabricate records. `mode` reports whether the core feed is live.
    * @returns {Promise<object>} DATA
    */
   async loadAll() {
@@ -807,7 +843,6 @@ const API = {
       contributors: this.fetchJSON(`/contributors?per_page=${P.contributors}`),
       branches: this.fetchJSON(`/branches?per_page=${P.branches}`),
       releases: this.fetchJSON(`/releases?per_page=${P.releases}`),
-      participation: this.fetchJSON('/stats/participation'),
       commits: this.fetchJSON(`/commits?per_page=${P.commits}`),
       issuesOpen: this.fetchJSON(`/issues?state=open&per_page=${P.issues}&sort=updated&direction=desc`),
       issuesClosed: this.fetchJSON(`/issues?state=closed&per_page=${P.issues}&sort=updated&direction=desc`),
@@ -826,9 +861,11 @@ const API = {
     const live = Boolean(R.repo && R.repo.full_name);
     const repo = R.repo || SNAPSHOT.repo;
 
-    /* Weekly commit totals (52, oldest first). */
-    const activityAvailable = Array.isArray(R.participation?.all) && R.participation.all.length >= 52;
-    const weekly = activityAvailable ? R.participation.all.slice(-52) : SNAPSHOT.weekly;
+    /* Pin pagination to the live default branch's immutable HEAD. */
+    const defaultHead = Array.isArray(R.branches)
+      ? R.branches.find((branch) => branch.name === repo.default_branch)?.commit?.sha : null;
+    const activityJob = live && /^[a-f0-9]{40}$/i.test(defaultHead || '')
+      ? this.fetchActivity(defaultHead).catch(() => null) : Promise.resolve(null);
 
     /* Languages (bytes per language). */
     const languages = (R.languages && Object.keys(R.languages).length)
@@ -855,19 +892,28 @@ const API = {
       : SNAPSHOT.branches.map((b) => ({ ...b, isDefault: b.name === repo.default_branch })))
       .filter((b) => !Utils.isReleaseBranch(b.name));
 
-    /* A repository push can affect any branch. Use each listed HEAD's
-       committer date instead; missing metadata stays unavailable. */
+    /* Resolve each HEAD's author/date and checks independently. Repository
+       push time is unrelated; missing metadata must not hide other fields. */
     if (Array.isArray(R.branches) && R.branches.length) {
       await Promise.all(branches.map(async (branch) => {
         if (!branch.sha) return;
-        try {
-          const head = (Array.isArray(R.commits) && R.commits.find((c) => c.sha === branch.sha))
-            || await this.fetchJSON(`/commits/${encodeURIComponent(branch.sha)}`);
-          const date = head?.commit?.committer?.date;
-          if (typeof date === 'string' && Number.isFinite(Date.parse(date))) branch.committedAt = date;
-        } catch (e) { /* Leave this branch's time unavailable without hiding other branches. */ }
+        const known = Array.isArray(R.commits) && R.commits.find((commit) => commit.sha === branch.sha);
+        const [headResult, checksResult] = await Promise.allSettled([
+          known || this.fetchJSON(`/commits/${encodeURIComponent(branch.sha)}`),
+          this.fetchChecks(branch.sha),
+        ]);
+        const head = this._ok(headResult);
+        const checks = this._ok(checksResult);
+        const date = head?.commit?.committer?.date;
+        if (typeof date === 'string' && Number.isFinite(Date.parse(date))) branch.committedAt = date;
+        if (head?.author) branch.author = head.author;
+        if (checks) branch.checks = checks;
       }));
     }
+
+    const activity = await activityJob;
+    const activityAvailable = activity !== null;
+    const { days, weekly } = activity || Activity.fromCommits([]);
 
     /* Preserve full release notes. Empty feeds remain empty; failures are labeled. */
     const liveReleases = Array.isArray(R.releases)
@@ -907,12 +953,12 @@ const API = {
     return {
       mode: live ? 'live' : 'sim',
       activityAvailable,
-      missingFeeds: keys.filter((key) => R[key] == null),
+      missingFeeds: [...keys.filter((key) => R[key] == null), ...(!activityAvailable ? ['activity'] : [])],
       repo, weekly, languages, contributors, branches, releases, ticker,
       issues: issueRows,
       pulls: prRows,
       counts,
-      days: Synth.daysFromWeekly(weekly),
+      days,
       releasesSynthetic: !liveReleases,
     };
   },
@@ -949,14 +995,14 @@ const Charts = {
       return;
     }
     if (data.activityAvailable !== false) this.activity(Utils.$('#chart-activity'), data);
-    else if (Utils.$('#chart-activity')) Utils.$('#chart-activity').innerHTML = '<p class="empty-note">// weekly statistics unavailable or still being calculated by GitHub</p>';
+    else if (Utils.$('#chart-activity')) Utils.$('#chart-activity').innerHTML = '<p class="empty-note">// commit history unavailable or incomplete</p>';
     this.donut(Utils.$('#chart-langs'), Utils.$('#langs-legend'), data.languages);
     const iTotal = data.counts.issuesOpen + data.counts.issuesClosed;
     const pTotal = data.counts.prsOpen + data.counts.prsClosed;
     this.gauge(Utils.$('#gauge-issues'), iTotal ? data.counts.issuesClosed / iTotal : 0, 'RESOLVED');
     this.gauge(Utils.$('#gauge-prs'), pTotal ? data.counts.prsClosed / pTotal : 0, 'THROUGHPUT');
     if (data.activityAvailable !== false) this.heatmap(Utils.$('#chart-heatmap'), data.days);
-    else if (Utils.$('#chart-heatmap')) Utils.$('#chart-heatmap').innerHTML = '<p class="empty-note">// matrix unavailable until weekly statistics arrive</p>';
+    else if (Utils.$('#chart-heatmap')) Utils.$('#chart-heatmap').innerHTML = '<p class="empty-note">// matrix unavailable without complete commit history</p>';
   },
 
   /**
@@ -981,7 +1027,7 @@ const Charts = {
       v,
     }));
 
-    const x = d3.scaleTime()
+    const x = d3.scaleUtc()
       .domain([pts[0].date, new Date(endSunday + 6 * DAY)])
       .range([m.l, W - m.r]);
     const y = d3.scaleLinear()
@@ -1008,7 +1054,7 @@ const Charts = {
     /* Axis labels. */
     svg.append('g')
       .attr('transform', `translate(0,${H - m.b})`)
-      .call(d3.axisBottom(x).ticks(Math.max(3, Math.floor(W / 120))).tickSize(0).tickPadding(9).tickFormat(d3.timeFormat('%b')))
+      .call(d3.axisBottom(x).ticks(Math.max(3, Math.floor(W / 120))).tickSize(0).tickPadding(9).tickFormat(d3.utcFormat('%b')))
       .call((g) => g.selectAll('text').attr('fill', pal.ink2).attr('font-family', Utils.cssVar('--font-mono')).attr('font-size', 10))
       .call((g) => g.selectAll('.domain').remove());
     svg.append('g')
@@ -1104,9 +1150,9 @@ const Charts = {
         rule.attr('x1', x(d.date)).attr('x2', x(d.date)).attr('stroke-opacity', 0.6);
         focus.attr('cx', x(d.date)).attr('cy', y(d.v)).attr('opacity', 1);
         Tip.show(
-          `<span class="tt-title">week of ${Utils.fmtMonthYear(d.date)} ${d.date.getUTCDate()}</span>` +
+          `<span class="tt-title">week of ${Utils.fmtDate(d.date, 'UTC')}</span>` +
           `<span class="tt-val">${Utils.fmtInt(d.v)} commits</span>` +
-          `<span class="tt-sub">${d.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} — ${new Date(d.date.getTime() + 6 * DAY).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>`,
+          `<span class="tt-sub">${d.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })} — ${new Date(d.date.getTime() + 6 * DAY).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}</span>`,
           ev.clientX, ev.clientY,
         );
       })
@@ -1269,7 +1315,7 @@ const Charts = {
 
   /**
    * Commit matrix — a 52×7 calendar heatmap.
-   * Weekly totals are real; daily texture comes from Synth.daysFromWeekly.
+   * Each cell counts actual commits by UTC committer date.
    * @param {Element} el - Mount point.
    * @param {Array<{date:Date,count:number,future:boolean}>} days
    */
@@ -1277,13 +1323,14 @@ const Charts = {
     if (!el) return;
     el.innerHTML = '';
     const pal = this.palette();
-    const W = el.clientWidth;
-    if (!W) return;
+    const available = el.clientWidth;
+    if (!available) return;
 
     const cols = Math.ceil(days.length / 7);
-    const showAxis = W >= 560;
+    const showAxis = available >= 560;
     const padL = showAxis ? 30 : 6, padT = 20, padR = 6, gap = 3;
-    const cell = Math.max(8, Math.floor((W - padL - padR - gap * (cols - 1)) / cols));
+    const cell = Math.max(8, Math.floor((available - padL - padR - gap * (cols - 1)) / cols));
+    const W = Math.max(available, padL + cols * (cell + gap) - gap + padR);
     const H = padT + 7 * (cell + gap) + 26;
 
     /* Intensity buckets over non-zero days. */
@@ -1311,7 +1358,7 @@ const Charts = {
         svg.append('text')
           .attr('x', padL + c * (cell + gap)).attr('y', 10)
           .attr('fill', pal.ink2).attr('font-family', Utils.cssVar('--font-mono')).attr('font-size', 9.5)
-          .text(d0.toLocaleDateString('en-US', { month: 'short' }));
+          .text(d0.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' }));
       }
     }
 
@@ -1339,7 +1386,7 @@ const Charts = {
         if (d.future) return;
         d3.select(this).attr('stroke', pal.accent).attr('stroke-width', 1.4);
         Tip.show(
-          `<span class="tt-title">${Utils.fmtDate(d.date)}</span>` +
+          `<span class="tt-title">${Utils.fmtDate(d.date, 'UTC')}</span>` +
           `<span class="tt-val">${d.count ? `${Utils.fmtInt(d.count)} commit${d.count > 1 ? 's' : ''}` : 'no commits'}</span>`,
           ev.clientX, ev.clientY,
         );
@@ -1371,6 +1418,9 @@ const Charts = {
     lg.append('text').attr('x', 104).attr('y', 8)
       .attr('fill', pal.ink2).attr('font-family', Utils.cssVar('--font-mono')).attr('font-size', 8.5)
       .text('MORE');
+    if (W > available) el.setAttribute('tabindex', '0');
+    else el.removeAttribute('tabindex');
+    el.scrollLeft = el.scrollWidth - el.clientWidth; // Start with the latest weeks, not an empty clipped year.
   },
 };
 
@@ -1433,7 +1483,7 @@ const UI = {
     const lead = data.contributors[0]?.login || '—';
 
     const cards = [
-      { ico: this.ICONS.commit, label: 'Commits', target: commitsTotal, fmt: 'int', delta: `<span class="up">+${Utils.fmtInt(thisWeek)}</span> this week` },
+      { ico: this.ICONS.commit, label: 'Commits', target: commitsTotal, fmt: 'int', delta: data.activityAvailable === false ? 'this week unavailable' : `<span class="up">+${Utils.fmtInt(thisWeek)}</span> this week` },
       { ico: this.ICONS.pr, label: 'Pull Requests', target: prTotal, fmt: 'int', delta: `<span class="accent">${data.counts.prsOpen} open</span> · ${data.counts.prsClosed} closed` },
       { ico: this.ICONS.issue, label: 'Issues', target: isTotal, fmt: 'int', delta: `<span class="accent">${data.counts.issuesOpen} open</span> · ${data.counts.issuesClosed} closed` },
       { ico: this.ICONS.users, label: 'Contributors', target: data.contributors.length, fmt: 'int', delta: `lead: <span class="accent">@${Utils.esc(lead)}</span>` },
@@ -1473,8 +1523,20 @@ const UI = {
   renderBranches(data) {
     const el = Utils.$('#branches-list');
     if (!el) return;
-    const base = data.repo.html_url;
-    el.innerHTML = data.branches.map((b) => `
+    const base = `https://github.com/${CONFIG.owner}/${CONFIG.repo}`;
+    el.innerHTML = data.branches.map((b) => {
+      const login = typeof b.author?.login === 'string' && /^[a-z\d][a-z\d-]{0,38}(?:\[bot\])?$/i.test(b.author.login) ? b.author.login : '';
+      const initials = Utils.esc(login.slice(0, 2).toUpperCase());
+      const avatarURL = typeof b.author?.avatar_url === 'string' && b.author.avatar_url.startsWith('https://avatars.githubusercontent.com/')
+        ? b.author.avatar_url : '';
+      const fallback = `<span class="contrib-avatar branch-avatar contrib-avatar-fallback" aria-hidden="true">${initials}</span>`;
+      const avatar = login ? `<a class="branch-author" href="https://github.com/${encodeURIComponent(login)}" target="_blank" rel="noopener" aria-label="Open commit author @${Utils.esc(login)} on GitHub" title="Commit author @${Utils.esc(login)}">${avatarURL ? `<img class="contrib-avatar branch-avatar" src="${Utils.esc(avatarURL)}" alt="" width="20" height="20" loading="lazy" data-initials="${initials}" />` : fallback}</a>` : '';
+      const state = ['success', 'pending', 'failure', 'neutral', 'none'].includes(b.checks?.state) ? b.checks.state : 'unavailable';
+      const labels = { success: 'checks passed', pending: 'checks pending', failure: 'checks failed', neutral: 'checks cancelled or stale', none: 'no checks', unavailable: 'checks unavailable' };
+      const icons = { success: 'check', pending: 'clock', failure: 'close', neutral: 'close', none: 'issue', unavailable: 'issue' };
+      const count = state !== 'unavailable' && b.checks.total ? `${b.checks.passed}/${b.checks.total}` : '—';
+      const description = `${b.name}: ${labels[state]}${state !== 'unavailable' && b.checks.total ? `; ${b.checks.passed} of ${b.checks.total} successful, neutral or skipped` : ''}`;
+      return `
       <article class="panel branch-card">
         <div class="branch-head">
           ${this.ICONS.branch}
@@ -1486,10 +1548,21 @@ const UI = {
         </div>
         <a class="branch-sha" href="${base}/commit/${Utils.esc(b.sha)}" target="_blank" rel="noopener" title="View HEAD commit">${Utils.esc(b.sha.slice(0, 7))}</a>
         <p class="branch-meta">
-          <a href="${base}/tree/${Utils.esc(b.name)}" target="_blank" rel="noopener">browse tree</a>
-          ${b.committedAt ? ` · <time datetime="${Utils.esc(b.committedAt)}">committed ${Utils.timeAgo(b.committedAt)}</time>` : ''}
+          <span class="branch-history">
+            <a class="branch-tree" href="${base}/tree/${Utils.esc(b.name)}" target="_blank" rel="noopener">browse tree</a>
+            ${b.committedAt ? `<span class="branch-commit"><span aria-hidden="true">·</span> ${avatar}<time datetime="${Utils.esc(b.committedAt)}">committed ${Utils.timeAgo(b.committedAt)}</time></span>` : ''}
+          </span>
+          ${b.sha ? `<a class="branch-checks" data-state="${state}" href="${base}/commit/${encodeURIComponent(b.sha)}/checks" target="_blank" rel="noopener" aria-label="${Utils.esc(description)}" title="${Utils.esc(description)}">${this.ICONS[icons[state]]}${Utils.esc(count)}</a>` : ''}
         </p>
-      </article>`).join('') || '<p class="empty-note">// no branch data</p>';
+      </article>`;
+    }).join('') || '<p class="empty-note">// no branch data</p>';
+    el.querySelectorAll('.branch-author img').forEach((image) => image.addEventListener('error', () => {
+      const fallback = document.createElement('span');
+      fallback.className = 'contrib-avatar branch-avatar contrib-avatar-fallback';
+      fallback.setAttribute('aria-hidden', 'true');
+      fallback.textContent = image.dataset.initials;
+      image.replaceWith(fallback);
+    }, { once: true }));
   },
 
   /**
@@ -1948,7 +2021,7 @@ const ItemModal = {
 
   /**
    * Open the modal for a normalized tracker row.
-   * @param {object} row - Row from API.normalizeRow / Synth.trackerRows.
+   * @param {object} row - Row from API.normalizeRow.
    * @param {'issue'|'pr'} kind
    */
   open(row, kind) {
@@ -2453,7 +2526,7 @@ async function boot() {
       issues: { open: [], closed: [] },
       pulls: { open: [], closed: [] },
       counts: SNAPSHOT.counts,
-      days: Synth.daysFromWeekly(SNAPSHOT.weekly),
+      days: Activity.fromCommits([]).days,
     };
   }
 
