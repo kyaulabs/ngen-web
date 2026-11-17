@@ -1,4 +1,4 @@
-// $KYAULabs: visual-review.test.js kyau@aura.kyaulabs 2026/11/16 -0800 Exp $
+// $KYAULabs: visual-review.test.js kyau@aura.kyaulabs 2026/11/17 -0800 Exp $
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -17,6 +17,13 @@ function configuration() {
     ] }],
   };
 }
+
+it('accepts a bounded explicit scroll action for expanded components', () => {
+  const input = configuration();
+  input.cases[0].states[0].actions = [{ type: 'scroll-into-view', selector: '#branches' }];
+  const [capture] = expandVisualReviewCases(validateVisualReviewConfig(input));
+  expect(capture.actions).toEqual(input.cases[0].states[0].actions);
+});
 
 it('accepts a bounded component selector and carries it into every capture', () => {
   const input = configuration();

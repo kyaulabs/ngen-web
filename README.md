@@ -22,6 +22,8 @@ The site combines NGEN’s visual identity with a public repository dashboard ad
 - A D3 space scene with a dense star field, organic cyan/violet nebulae, rotating orbital tracks, and globes circling the N mark.
 - A responsive, viewport-fixed space background behind the hero and dashboard until the footer, with visible star drift and flowing nebulae. The site is dark-only, including panels, navigation, dialogs, and footer.
 - Repository counters, commit activity, language composition, daily commit counts, branch authors and workflow status, releases, issues, pull requests, and contributor profiles from `kyaulabs/ngen`.
+- Milestone quest cards with expandable objectives and a read-only Kanban view of the public NGEN Roadmap, filterable by milestone.
+- Release asset links, a separate Changelog popup, and full-block code copying.
 - A source-clone command and a Games directory, currently showing “No games announced yet.”
 - Keyboard-operable dialogs, reduced-motion support, and an animation pause control.
 

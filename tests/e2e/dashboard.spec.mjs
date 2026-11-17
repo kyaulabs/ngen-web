@@ -1,7 +1,7 @@
-// $KYAULabs: dashboard.spec.mjs kyau@aura.kyaulabs 2026/11/16 -0800 Exp $
+// $KYAULabs: dashboard.spec.mjs kyau@aura.kyaulabs 2026/11/17 -0800 Exp $
 import { readFile } from 'node:fs/promises';
 import { test, expect } from '@playwright/test';
-import { controlNetwork } from '../network.mjs';
+import { controlNetwork, releaseCode } from '../network.mjs';
 
 const command = 'git clone --recurse-submodules https://github.com/kyaulabs/ngen.git';
 test.beforeEach(async ({ page }) => { await controlNetwork(page); });
@@ -52,6 +52,21 @@ test('preserves the dashboard with NGEN identity, live charts and an honest game
   expect(errors).toEqual([]);
 });
 
+test('lets section descriptions use the same full width as their content', async ({ page }) => {
+  for (const width of [1920, 390, 320]) {
+    await page.setViewportSize({ width, height: width === 1920 ? 1080 : 844 });
+    await load(page);
+    const headers = await page.locator('.section > .sec-head').evaluateAll((elements) => elements.map((header) => {
+      const section = header.parentElement;
+      const bounds = section.getBoundingClientRect();
+      const text = header.getBoundingClientRect();
+      return { id: section.id, right: text.right, expected: bounds.right - parseFloat(getComputedStyle(section).paddingRight) };
+    }));
+    for (const header of headers) expect(Math.abs(header.right - header.expected), `${width}px ${header.id} description width`).toBeLessThanOrEqual(1);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  }
+});
+
 test.describe('UTC commit calendar', () => {
   test.use({ timezoneId: 'America/Los_Angeles' });
   test('counts complete history and keeps UTC month and tooltip dates in a western timezone', async ({ page }) => {
@@ -72,6 +87,34 @@ test.describe('UTC commit calendar', () => {
     await expect(page.locator('#matrix .sec-sub')).toContainText('UTC');
     await expect(page.locator('#matrix')).not.toContainText('Estimated');
   });
+});
+
+test('matches matrix legend swatches to cells and aligns the whole legend with the grid', async ({ page }) => {
+  for (const width of [1920, 390, 320]) {
+    await page.setViewportSize({ width, height: width === 1920 ? 1080 : 844 });
+    await load(page);
+    const geometry = await page.locator('#chart-heatmap svg').evaluate((svg) => {
+      const days = [...svg.querySelectorAll('rect.day')];
+      const legend = svg.querySelector('g');
+      return {
+        cell: days[0].getBoundingClientRect().width,
+        gridRight: Math.max(...days.map((day) => day.getBoundingClientRect().right)),
+        legendRight: legend.getBoundingClientRect().right,
+        swatches: [...legend.querySelectorAll('rect')].map((rect) => ({ width: rect.getBoundingClientRect().width, height: rect.getBoundingClientRect().height })),
+        labels: [...legend.querySelectorAll('text')].map((text) => text.getBoundingClientRect().height),
+      };
+    });
+    expect(geometry.swatches).toHaveLength(5);
+    for (const swatch of geometry.swatches) {
+      expect(swatch.width).toBeCloseTo(geometry.cell, 1);
+      expect(swatch.height).toBeCloseTo(geometry.cell, 1);
+    }
+    expect(Math.abs(geometry.legendRight - geometry.gridRight), `${width}px legend right edge`).toBeLessThanOrEqual(1);
+    for (const height of geometry.labels) {
+      expect(height).toBeGreaterThanOrEqual(geometry.cell * 0.7);
+      expect(height).toBeLessThanOrEqual(geometry.cell * 1.5);
+    }
+  }
 });
 
 test('keeps recent matrix cells reachable without clipping on narrow screens', async ({ page }) => {
@@ -114,6 +157,18 @@ test('centers the source command and copy control in the Games command block', a
   }
 });
 
+test('leaves a modest readable gap between the release header and its notes', async ({ page }) => {
+  for (const width of [1920, 390, 320]) {
+    await page.setViewportSize({ width, height: width === 1920 ? 1080 : 844 });
+    await load(page);
+    const header = await page.locator('.release-head').first().boundingBox();
+    const notes = await page.locator('.release-body .md-body > :first-child').first().boundingBox();
+    const gap = notes.y - header.y - header.height;
+    expect(gap, `${width}px release notes gap`).toBeGreaterThanOrEqual(16);
+    expect(gap).toBeLessThanOrEqual(24);
+  }
+});
+
 test('omits the leading release logo without discarding rendered notes', async ({ page }) => {
   await load(page);
   const notes = page.locator('.release-body .md-body').first();
@@ -127,6 +182,165 @@ test('omits the leading release logo without discarding rendered notes', async (
   await expect(toggle).toHaveAttribute('aria-expanded', 'false');
   await toggle.click();
   await expect(notes).toBeVisible();
+});
+
+test('opens a contributor-themed changelog dialog without toggling the release', async ({ page }) => {
+  await load(page);
+  const trigger = page.getByRole('button', { name: 'Read changelog for v0.1.0-fixture' });
+  await expect(trigger).toHaveText('Changelog');
+  expect(await trigger.evaluate((button) => button.previousElementSibling.classList.contains('badge-latest'))).toBe(true);
+  await expect(page.locator('.release-body')).not.toContainText('Keep full history in the popup.');
+  await trigger.click();
+  const dialog = page.getByRole('dialog', { name: 'Changelog — v0.1.0-fixture' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText('Keep full history in the popup.');
+  await expect(dialog.locator('script')).toHaveCount(0);
+  await expect(page.locator('.release-toggle')).toHaveAttribute('aria-expanded', 'true');
+  const close = dialog.getByRole('button', { name: 'Close release changelog' });
+  await expect(close).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await expect(dialog.getByRole('link', { name: 'View release on GitHub' })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(close).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  await expect(trigger).toBeFocused();
+  await expect(page.locator('.release-toggle')).toHaveAttribute('aria-expanded', 'true');
+  await trigger.click();
+  await page.locator('#release-changelog-modal').click({ position: { x: 8, y: 8 } });
+  await expect(dialog).toBeHidden();
+});
+
+test('keeps the changelog control immediately beside Latest when release headers reflow', async ({ page }) => {
+  for (const width of [390, 320]) {
+    await page.setViewportSize({ width, height: 844 });
+    await load(page);
+    const badge = await page.locator('.badge-latest').boundingBox();
+    const button = await page.locator('.release-changelog').boundingBox();
+    expect(Math.abs(badge.y + badge.height / 2 - button.y - button.height / 2)).toBeLessThanOrEqual(1);
+    expect(button.x).toBeGreaterThanOrEqual(badge.x + badge.width);
+  }
+});
+
+test('themes every release code block like the Games command and copies its exact full contents', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.copiedBlocks = [];
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText: async (text) => { window.copiedBlocks.push(text); } } });
+  });
+  await load(page);
+  const blocks = page.locator('.release-body .release-code');
+  await expect(blocks).toHaveCount(2);
+  const line = await blocks.nth(1).locator('pre').boundingBox();
+  const copy = await blocks.nth(1).locator('button').boundingBox();
+  expect(Math.abs(line.y + line.height / 2 - copy.y - copy.height / 2)).toBeLessThanOrEqual(1);
+  expect(await paintedColor(blocks.first())).toEqual(await paintedColor(page.locator('#install .clone-block')));
+  expect(await paintedColor(blocks.first().locator('code'), 'color')).toEqual(await paintedColor(page.locator('#install code'), 'color'));
+  await blocks.first().getByRole('button', { name: 'Copy code block' }).click();
+  await expect.poll(() => page.evaluate(() => window.copiedBlocks[0])).toBe(releaseCode);
+  await expect(page.locator('.code-copy-status').first()).toHaveText('Code block copied.');
+  await blocks.nth(1).getByRole('button', { name: 'Copy code block' }).click();
+  expect(await page.evaluate(() => window.copiedBlocks[1])).toBe('ngen --help');
+  expect(await page.evaluate(() => window.injected)).toBeUndefined();
+});
+
+test('shows a real-count quest log between Branches and Releases', async ({ page }) => {
+  await load(page);
+  const roadmap = page.locator('#milestones');
+  await expect(roadmap.getByRole('heading', { name: 'Milestones', exact: true })).toBeVisible();
+  await expect(roadmap.locator('.milestone-card')).toHaveCount(2);
+  const first = roadmap.locator('.milestone-card').first();
+  await expect(first).toContainText('M4 — Controlled mission');
+  await expect(first).toContainText('1 of 2 items closed');
+  await expect(first.getByRole('progressbar')).toHaveAttribute('value', '1');
+  await expect(first.getByRole('progressbar')).toHaveAttribute('max', '2');
+  await expect(roadmap.getByRole('tab', { name: 'Milestones', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('.nav-links a[href="#milestones"]')).toHaveCount(1);
+  expect(await roadmap.evaluate((section) => Boolean(section.compareDocumentPosition(document.querySelector('#releases')) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
+});
+
+test('loads milestone objectives on expansion and preserves real item states and links', async ({ page }) => {
+  const requests = [];
+  page.on('request', (request) => { if (new URL(request.url()).searchParams.has('milestone')) requests.push(request.url()); });
+  await load(page);
+  expect(requests).toHaveLength(0);
+  const card = page.locator('.milestone-card').first();
+  await card.locator('summary').click();
+  await expect(card.locator('.milestone-item-list a')).toHaveCount(2);
+  await expect(card.locator('.milestone-item-list')).toContainText('Define coordinate frames');
+  await expect(card.locator('.milestone-item-list')).toContainText('Verify trajectory bounds');
+  await expect(card.locator('.milestone-item-list a').first()).toHaveAttribute('href', 'https://github.com/kyaulabs/ngen/issues/12');
+  await expect(card.locator('.milestone-item-list a').last()).toContainText('Closed');
+  await card.locator('summary').click();
+  await card.locator('summary').click();
+  expect(requests).toHaveLength(1);
+});
+
+test('shows actual Kanban columns, filters by milestone and supports keyboard tabs', async ({ page }) => {
+  await load(page);
+  const roadmap = page.locator('#milestones');
+  const quests = roadmap.getByRole('tab', { name: 'Milestones', exact: true });
+  const kanban = roadmap.getByRole('tab', { name: 'Kanban', exact: true });
+  await kanban.click();
+  await expect(kanban).toHaveAttribute('aria-selected', 'true');
+  await expect(roadmap.locator('.kanban-column')).toHaveCount(3);
+  await expect(roadmap.locator('.kanban-column').nth(0)).toContainText('Todo');
+  await expect(roadmap.locator('.kanban-column').nth(1)).toContainText('In Progress');
+  await expect(roadmap.locator('.kanban-column').nth(2)).toContainText('Done');
+  await expect(roadmap.locator('.kanban-card')).toHaveCount(3);
+  await roadmap.getByLabel('Filter by milestone').selectOption('1');
+  await expect(roadmap.locator('.kanban-card')).toHaveCount(2);
+  await expect(roadmap.locator('#kanban-view')).not.toContainText('Build creator workflow');
+  await expect(roadmap.locator('.kanban-card').first()).toHaveAttribute('href', 'https://github.com/kyaulabs/ngen/issues/12');
+  await quests.focus();
+  await page.keyboard.press('End');
+  await expect(kanban).toBeFocused();
+  await page.keyboard.press('ArrowLeft');
+  await expect(quests).toBeFocused();
+  await expect(quests).toHaveAttribute('aria-selected', 'true');
+  await expect(roadmap.getByRole('tabpanel', { name: 'Milestones', exact: true })).toBeVisible();
+});
+
+for (const width of [1920, 390, 320]) {
+  test(`keeps quest objectives and Kanban readable and operable at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: width === 1920 ? 1080 : 844 });
+    await load(page);
+    const roadmap = page.locator('#milestones');
+    await roadmap.locator('summary').first().click();
+    await expect(roadmap.locator('.milestone-item-list a')).toHaveCount(2);
+    await roadmap.locator('summary').first().focus();
+    await page.keyboard.press('Tab');
+    await page.keyboard.press('Shift+Tab');
+    await expect(roadmap.locator('summary').first()).toHaveCSS('outline-width', '2px');
+    await roadmap.getByRole('tab', { name: 'Kanban', exact: true }).click();
+    await expect(roadmap.locator('.kanban-card')).toHaveCount(3);
+    for (const card of await roadmap.locator('.kanban-card').all()) {
+      const bounds = await card.boundingBox();
+      expect(bounds.width).toBeGreaterThan(0);
+      expect(bounds.height).toBeGreaterThanOrEqual(44);
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  });
+}
+
+test('reports unavailable roadmap feeds without fabricating progress', async ({ page }) => {
+  await controlNetwork(page, false, 'roadmap-unavailable-dark');
+  await load(page);
+  const roadmap = page.locator('#milestones');
+  await expect(roadmap).toContainText('milestone feed unavailable');
+  await expect(roadmap.locator('progress')).toHaveCount(0);
+  await roadmap.getByRole('tab', { name: 'Kanban', exact: true }).click();
+  await expect(roadmap).toContainText('project board unavailable');
+});
+
+test('shows a genuinely empty roadmap without fabricated quests or completed progress', async ({ page }) => {
+  await controlNetwork(page, false, 'roadmap-empty-dark');
+  await load(page);
+  const roadmap = page.locator('#milestones');
+  await expect(roadmap).toContainText('no GitHub milestones published');
+  await expect(roadmap.locator('progress')).toHaveCount(0);
+  await roadmap.getByRole('tab', { name: 'Kanban', exact: true }).click();
+  await expect(roadmap.locator('.kanban-column')).toHaveCount(3);
+  await expect(roadmap.locator('.kanban-card')).toHaveCount(0);
 });
 
 test('sizes and aligns the profile chevron like Prism punctuation', async ({ page }) => {
@@ -483,7 +697,7 @@ test('restores compact reference tabs, copy actions, row hover and solid tooltip
   await expect(tab).toHaveCSS('font-family', /Operator Mono/);
   await expect(tab).toHaveCSS('border-bottom-width', '2px');
   await expect(tab).toHaveCSS('border-bottom-color', 'rgb(34, 211, 238)');
-  const copy = page.locator('.clone-copy');
+  const copy = page.getByRole('button', { name: 'Copy source clone command' });
   const box = await copy.boundingBox();
   expect(box.width).toBe(26);
   expect(box.height).toBe(26);
