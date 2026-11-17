@@ -10,6 +10,7 @@
 const CONFIG = {
   owner: 'kyaulabs',          // GitHub organization
   repo: 'ngen',              // repository name
+  roadmapProject: 4,         // public NGEN Roadmap; read-only REST access
   apiBase: 'https://api.github.com',
   cacheKey: 'ngen.telemetry.v1.',  // sessionStorage namespace prefix
   cacheTTLms: 10 * 60 * 1000,       // 10 minute cache lifetime
@@ -317,13 +318,39 @@ const Utils = {
  * from upstream release bodies can ever reach the DOM.
  * ------------------------------------------------------------------------- */
 const Markdown = {
-  /** Render release notes without their redundant leading NGEN logo block. */
-  renderRelease(src) {
+  /** Render release notes without the leading logo or separate changelog section. */
+  renderRelease(src) { return this.render(this.splitRelease(src).notes); },
+
+  /** Split actual changelog headings, never fenced examples or HTML comments. */
+  splitRelease(src) {
     const source = String(src || '');
     const banner = /^\s*<p\b[^>]*>\s*<picture\b[^>]*>[\s\S]*?<\/picture>\s*<\/p>\s*/i.exec(source);
     const notes = banner && /\/brand\/logos\/(?:png|svg)\/ngen-/i.test(banner[0])
       ? source.slice(banner[0].length) : source;
-    return this.render(notes);
+    const lines = notes.replace(/\r\n?/g, '\n').split('\n');
+    let fence = null, comment = false, start = -1, level = 0, end = lines.length;
+    for (let index = 0; index < lines.length; index++) {
+      const line = lines[index];
+      const marker = /^\s*(`{3,}|~{3,})(.*)$/.exec(line);
+      if (fence) {
+        if (marker && marker[1][0] === fence[0] && marker[1].length >= fence.length && !marker[2].trim()) fence = null;
+        continue;
+      }
+      if (!comment && marker) { fence = marker[1]; continue; }
+      if (comment || line.includes('<!--')) {
+        comment = !line.includes('-->');
+        continue;
+      }
+      const heading = /^(#{1,6})\s+(.+?)\s*#*\s*$/.exec(line);
+      if (!heading) continue;
+      if (start !== -1 && heading[1].length <= level) { end = index; break; }
+      if (start === -1 && heading[2].replace(/^[^a-z0-9]+|[^a-z0-9]+$/gi, '').toLowerCase() === 'changelog') {
+        start = index;
+        level = heading[1].length;
+      }
+    }
+    const changelog = start === -1 ? '' : lines.slice(start + 1, end).join('\n').trim();
+    return { notes: changelog ? [...lines.slice(0, start), ...lines.slice(end)].join('\n').trim() : notes, changelog };
   },
 
   /**
@@ -333,9 +360,10 @@ const Markdown = {
    */
   render(src) {
     if (!src) return '';
-    /* Strip HTML comments up front (git-cliff et al. stamp "auto-generated"
-       banners into release bodies) — they must not surface as escaped text. */
-    const lines = String(src).replace(/<!--[\s\S]*?-->/g, '').replace(/\r\n?/g, '\n').split('\n');
+    /* Prose comments (e.g. git-cliff stamps) stay hidden; fenced comments are literal code. */
+    const lines = String(src).replace(/\r\n?/g, '\n')
+      .replace(/(^[ \t]*```[^\n]*\n[\s\S]*?(?:^[ \t]*```[ \t]*$|(?![\s\S])))|<!--[\s\S]*?-->/gm, (_match, code) => code || '')
+      .split('\n');
     const out = [];
     let i = 0;
 
@@ -677,14 +705,16 @@ const API = {
    * Fetch JSON from the GitHub API with caching.
    * @param {string} path - Path relative to the repository base, or an
    *                        absolute API path ('/search/…', '/users/…').
+   * @param {boolean} [paged=false] - Include pagination headers in a separate cache entry.
    * @returns {Promise<any>}
    * @throws {Error} On HTTP errors, including rate limiting (403/429).
    */
-  async fetchJSON(path) {
-    const hit = this._cacheGet(path);
+  async fetchJSON(path, paged = false) {
+    const key = paged ? `page:${path}` : path;
+    const hit = this._cacheGet(key);
     if (hit !== null) return hit;
 
-    const url = /^\/(?:search|users)\//.test(path)
+    const url = /^\/(?:search|users|orgs|repos)\//.test(path)
       ? `${CONFIG.apiBase}${path}`
       : `${CONFIG.apiBase}/repos/${CONFIG.owner}/${CONFIG.repo}${path}`;
     const res = await fetch(url, { headers: { Accept: 'application/vnd.github+json' }, signal: AbortSignal.timeout(10000) });
@@ -694,8 +724,35 @@ const API = {
       throw err;
     }
     const data = await res.json();
-    this._cacheSet(path, data);
-    return data;
+    const result = paged ? { data, link: res.headers?.get?.('Link') || '' } : data;
+    this._cacheSet(key, result);
+    return result;
+  },
+
+  /** Read a complete bounded list, following only same-resource GitHub pagination. */
+  async fetchList(path) {
+    const initial = new URL(/^\/(?:orgs|repos)\//.test(path) ? `${CONFIG.apiBase}${path}`
+      : `${CONFIG.apiBase}/repos/${CONFIG.owner}/${CONFIG.repo}${path}`);
+    initial.searchParams.set('per_page', '100');
+    let next = initial;
+    const rows = [], seen = new Set();
+    for (let page = 0; page < 10; page++) {
+      if (seen.has(next.href)) throw new Error('Cyclic pagination');
+      seen.add(next.href);
+      const result = await this.fetchJSON(next.pathname + next.search, true);
+      if (!Array.isArray(result?.data) || result.data.length > 100 || typeof result.link !== 'string') throw new Error('Invalid list page');
+      rows.push(...result.data);
+      const link = /<([^>]+)>;\s*rel="next"/.exec(result.link);
+      if (!link) return rows;
+      next = new URL(link[1], CONFIG.apiBase);
+      const keys = new Set([...initial.searchParams.keys(), ...next.searchParams.keys()]);
+      if (next.origin !== initial.origin || next.pathname !== initial.pathname || next.username || next.password
+          || [...keys].some((key) => !['page', 'before', 'after'].includes(key)
+            && initial.searchParams.getAll(key).join('\0') !== next.searchParams.getAll(key).join('\0'))) {
+        throw new Error('Unsafe pagination scope');
+      }
+    }
+    throw new Error('Incomplete list: pagination limit reached');
   },
 
   /**
@@ -778,6 +835,65 @@ const API = {
     };
   },
 
+  /** Public milestone counters are authoritative; missing feeds have no synthetic fallback. */
+  async fetchMilestones() {
+    const rows = await this.fetchList('/milestones?state=all');
+    if (!Array.isArray(rows) || rows.some((row) => !Number.isSafeInteger(row?.number) || row.number < 1
+        || typeof row.title !== 'string' || !['open', 'closed'].includes(row.state)
+        || ![row.open_issues, row.closed_issues].every((count) => Number.isSafeInteger(count) && count >= 0))) {
+      throw new Error('Invalid milestone feed');
+    }
+    return rows.map((row) => ({ number: row.number, title: row.title, description: typeof row.description === 'string' ? row.description : '',
+      state: row.state, open: row.open_issues, closed: row.closed_issues })).sort((a, b) => a.number - b.number);
+  },
+
+  /** Fetch the milestone's complete issue/PR list only when objectives are opened. */
+  async fetchMilestoneItems(number) {
+    if (!Number.isSafeInteger(number) || number < 1) throw new Error('Invalid milestone number');
+    const rows = await this.fetchList(`/issues?state=all&milestone=${number}`);
+    return rows.map((row) => {
+      if (!Number.isSafeInteger(row?.number) || row.number < 1 || typeof row.title !== 'string' || !['open', 'closed'].includes(row.state)) {
+        throw new Error('Invalid milestone objective');
+      }
+      return { kind: row.pull_request ? 'pr' : 'issue', number: row.number, title: row.title, state: row.state };
+    });
+  },
+
+  /** Read only the public project's active NGEN cards and its actual status definitions. */
+  async fetchProject() {
+    const path = `/orgs/${CONFIG.owner}/projectsV2/${CONFIG.roadmapProject}`;
+    const project = await this.fetchJSON(path);
+    if (project?.public !== true) throw new Error('Public project unavailable');
+    const fields = await this.fetchList(`${path}/fields`);
+    const field = fields.find((entry) => entry?.name === 'Status' && entry.data_type === 'single_select');
+    if (!Number.isSafeInteger(field?.id) || !Array.isArray(field.options)) throw new Error('Project status definitions unavailable');
+    const columns = field.options.map((option) => {
+      if (typeof option?.id !== 'string' || typeof option.name?.raw !== 'string') throw new Error('Invalid project status');
+      return { id: option.id, name: option.name.raw };
+    });
+    if (new Set(columns.map((column) => column.id)).size !== columns.length) throw new Error('Duplicate project status');
+    const query = new URLSearchParams({ fields: String(field.id), q: `repo:${CONFIG.owner}/${CONFIG.repo}` });
+    const raw = await this.fetchList(`${path}/items?${query}`);
+    const repository = `${CONFIG.apiBase}/repos/${CONFIG.owner}/${CONFIG.repo}`;
+    const items = [];
+    for (const item of raw) {
+      if (item?.archived_at) continue;
+      const content = item?.content;
+      const kind = item?.content_type === 'PullRequest' ? 'pr' : item?.content_type === 'Issue' ? 'issue' : null;
+      if (!kind || content?.url !== `${repository}/${kind === 'pr' ? 'pulls' : 'issues'}/${content?.number}`) continue;
+      if (!Number.isSafeInteger(item.id) || !Number.isSafeInteger(content.number) || content.number < 1
+          || typeof content.title !== 'string' || !['open', 'closed'].includes(content.state) || !Array.isArray(item.fields)) {
+        throw new Error('Invalid project item');
+      }
+      const status = item.fields.find((entry) => entry?.id === field.id)?.value?.id;
+      items.push({ id: item.id, kind, number: content.number, title: content.title, state: content.state,
+        milestone: Number.isSafeInteger(content.milestone?.number) ? content.milestone.number : null,
+        status: typeof status === 'string' ? status : null });
+    }
+    if (new Set(items.map((item) => item.id)).size !== items.length) throw new Error('Duplicate project item');
+    return { columns, items };
+  },
+
   /** Aggregate latest HEAD checks and legacy statuses; incomplete results are unknown. */
   async fetchChecks(sha) {
     const base = `/commits/${encodeURIComponent(sha)}`;
@@ -843,6 +959,8 @@ const API = {
       contributors: this.fetchJSON(`/contributors?per_page=${P.contributors}`),
       branches: this.fetchJSON(`/branches?per_page=${P.branches}`),
       releases: this.fetchJSON(`/releases?per_page=${P.releases}`),
+      milestones: this.fetchMilestones(),
+      project: this.fetchProject(),
       commits: this.fetchJSON(`/commits?per_page=${P.commits}`),
       issuesOpen: this.fetchJSON(`/issues?state=open&per_page=${P.issues}&sort=updated&direction=desc`),
       issuesClosed: this.fetchJSON(`/issues?state=closed&per_page=${P.issues}&sort=updated&direction=desc`),
@@ -921,6 +1039,8 @@ const API = {
           tag: r.tag_name, name: r.name || r.tag_name,
           body: (r.body || '').replace(/\r\n?/g, '\n').trim(),
           date: r.published_at || r.created_at, url: r.html_url,
+          assets: Array.isArray(r.assets) ? r.assets.filter((asset) => typeof asset?.name === 'string' && typeof asset.browser_download_url === 'string')
+            .map((asset) => ({ name: asset.name, url: asset.browser_download_url })) : [],
           latest: i === 0, synthetic: false,
         }))
       : null;
@@ -955,6 +1075,7 @@ const API = {
       activityAvailable,
       missingFeeds: [...keys.filter((key) => R[key] == null), ...(!activityAvailable ? ['activity'] : [])],
       repo, weekly, languages, contributors, branches, releases, ticker,
+      milestones: R.milestones, project: R.project,
       issues: issueRows,
       pulls: prRows,
       counts,
@@ -1331,7 +1452,8 @@ const Charts = {
     const padL = showAxis ? 30 : 6, padT = 20, padR = 6, gap = 3;
     const cell = Math.max(8, Math.floor((available - padL - padR - gap * (cols - 1)) / cols));
     const W = Math.max(available, padL + cols * (cell + gap) - gap + padR);
-    const H = padT + 7 * (cell + gap) + 26;
+    const legendTop = padT + 7 * (cell + gap) - gap + Math.max(10, cell * 0.75);
+    const H = Math.ceil(legendTop + cell + 10);
 
     /* Intensity buckets over non-zero days. */
     const nz = days.filter((d) => d.count > 0).map((d) => d.count).sort((a, b) => a - b);
@@ -1404,20 +1526,25 @@ const Charts = {
         .attr('opacity', 1);
     }
 
-    /* Legend: LESS □□□□□ MORE */
-    const lg = svg.append('g')
-      .attr('transform', `translate(${W - padR - 132},${H - 14})`);
-    lg.append('text').attr('x', 0).attr('y', 8)
-      .attr('fill', pal.ink2).attr('font-family', Utils.cssVar('--font-mono')).attr('font-size', 8.5)
-      .text('LESS');
-    pal.heat.forEach((c, i) => {
-      lg.append('rect')
-        .attr('x', 30 + i * 14).attr('y', 0).attr('width', 10).attr('height', 10).attr('rx', 2)
-        .attr('fill', c).attr('stroke', Utils.rgba(pal.ink2, 0.12));
+    /* The complete legend ends at the final grid cell, not the SVG padding. */
+    const fontSize = Math.max(8, cell * 0.8);
+    const labelGap = cell * 0.4;
+    const swatchesX = -(fontSize * 2.5 + labelGap + pal.heat.length * cell + (pal.heat.length - 1) * gap);
+    const gridRight = padL + cols * (cell + gap) - gap;
+    const lg = svg.append('g').attr('class', 'matrix-legend')
+      .attr('transform', `translate(${gridRight},${legendTop})`);
+    [[swatchesX - labelGap, 'LESS'], [0, 'MORE']].forEach(([x, label]) => {
+      lg.append('text').attr('x', x).attr('y', cell / 2)
+        .attr('text-anchor', 'end').attr('dominant-baseline', 'central')
+        .attr('fill', pal.ink2).attr('font-family', Utils.cssVar('--font-mono')).attr('font-size', fontSize)
+        .text(label);
     });
-    lg.append('text').attr('x', 104).attr('y', 8)
-      .attr('fill', pal.ink2).attr('font-family', Utils.cssVar('--font-mono')).attr('font-size', 8.5)
-      .text('MORE');
+    pal.heat.forEach((color, index) => {
+      lg.append('rect')
+        .attr('x', swatchesX + index * (cell + gap)).attr('y', 0)
+        .attr('width', cell).attr('height', cell).attr('rx', 2.4)
+        .attr('fill', color).attr('stroke', Utils.rgba(pal.ink2, 0.12));
+    });
     if (W > available) el.setAttribute('tabindex', '0');
     else el.removeAttribute('tabindex');
     el.scrollLeft = el.scrollWidth - el.clientWidth; // Start with the latest weeks, not an empty clipped year.
@@ -1565,13 +1692,54 @@ const UI = {
     }, { once: true }));
   },
 
-  /**
-   * Render the release timeline; annotate unavailable or empty feeds. Each card
-   * expands on click to reveal the full release notes, rendered from
-   * markdown to HTML by the Markdown module. The current (latest) release
-   * starts expanded.
-   * @param {object} data
-   */
+  /** Enhance release code without changing its literal text or whitespace. */
+  prepareReleaseCode(root) {
+    root.querySelectorAll('.md-body pre').forEach((pre) => {
+      const code = pre.querySelector('code');
+      if (!code || pre.closest('.release-code')) return;
+      const block = document.createElement('div');
+      block.className = 'release-code clone-line clone-block';
+      const button = document.createElement('button');
+      button.className = 'clone-copy icon-btn';
+      button.type = 'button';
+      button.setAttribute('aria-label', 'Copy code block');
+      button.disabled = !code.textContent;
+      button.innerHTML = this.ICONS.copy;
+      const status = document.createElement('p');
+      status.className = 'code-copy-status empty-note';
+      status.setAttribute('role', 'status');
+      pre.replaceWith(block);
+      block.append(pre, button);
+      block.after(status);
+    });
+  },
+
+  /** Link plain table filenames only to this release's actual, validated assets. */
+  linkReleaseDownloads(card, release) {
+    const prefix = `/${CONFIG.owner}/${CONFIG.repo}/releases/download/${encodeURIComponent(release.tag)}/`;
+    const assets = new Map();
+    for (const asset of Array.isArray(release.assets) ? release.assets : []) {
+      try {
+        const url = new URL(asset?.url);
+        if (typeof asset?.name !== 'string' || url.protocol !== 'https:' || url.hostname !== 'github.com'
+            || url.username || url.password || !url.pathname.startsWith(prefix)
+            || decodeURIComponent(url.pathname.slice(prefix.length)) !== asset.name) continue;
+        assets.set(asset.name, url.href);
+      } catch { /* Invalid metadata must not hide otherwise readable release notes. */ }
+    }
+    card.querySelectorAll('.md-body table td:first-child code').forEach((code) => {
+      const url = assets.get(code.textContent);
+      if (!url || code.closest('a')) return;
+      const link = document.createElement('a');
+      link.href = url;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      code.replaceWith(link);
+      link.append(code);
+    });
+  },
+
+  /** Render escaped release notes; the latest card starts expanded. */
   renderReleases(data) {
     const el = Utils.$('#releases-list');
     if (!el) return;
@@ -1582,13 +1750,15 @@ const UI = {
         : (data.releases.length ? 'Streamed live from the GitHub Releases feed.' : 'No GitHub releases published yet.');
     }
     const chevron = this.ICONS.chevron;
-    el.innerHTML = data.releases.map((r, i) => `
+    const entries = data.releases.map((release) => ({ release, ...Markdown.splitRelease(release.body) }));
+    el.innerHTML = entries.map(({ release: r, notes, changelog }, i) => `
       <div class="release-item">
         <article class="panel release-card${r.latest ? ' expanded' : ''}">
           <div class="release-head">
             <a class="release-tag" href="${Utils.esc(r.url)}" target="_blank" rel="noopener">${Utils.esc(r.tag)}</a>
             <span class="release-title">${Utils.esc(r.name)}</span>
-            ${r.latest ? '<span class="badge-latest">LATEST</span>' : ''}
+            ${r.latest || changelog ? `<span class="release-badges">${r.latest ? '<span class="badge-latest">LATEST</span>' : ''}
+            ${changelog ? `<button class="tag release-changelog" type="button" aria-haspopup="dialog" aria-controls="release-changelog-modal" aria-label="Read changelog for ${Utils.esc(r.tag)}">Changelog</button>` : ''}</span>` : ''}
             ${r.synthetic ? '<span class="tag">projected</span>' : ''}
             <span class="release-date">${Utils.fmtDate(new Date(r.date))}</span>
             <button class="release-toggle" type="button" aria-expanded="${r.latest ? 'true' : 'false'}"
@@ -1596,7 +1766,7 @@ const UI = {
           </div>
           <div class="release-body" id="release-body-${i}">
             <div class="release-body-inner">
-              <div class="md-body">${Markdown.renderRelease(r.body)}</div>
+              <div class="md-body">${Markdown.render(notes)}</div>
             </div>
           </div>
         </article>
@@ -1606,9 +1776,15 @@ const UI = {
        on links (they navigate) and inside the expanded notes body (so text
        selection never collapses the card). The chevron <button> gives
        keyboard users the same toggle for free (Enter/Space fire click). */
-    el.querySelectorAll('.release-card').forEach((card) => {
+    el.querySelectorAll('.release-card').forEach((card, index) => {
+      this.linkReleaseDownloads(card, data.releases[index]);
+      this.prepareReleaseCode(card);
       const toggle = card.querySelector('.release-toggle');
       card.addEventListener('click', (ev) => {
+        if (ev.target.closest('.release-changelog')) {
+          ReleaseModal.open(entries[index].release, entries[index].changelog);
+          return;
+        }
         if (ev.target.closest('a') || ev.target.closest('.release-body')) return;
         const open = card.classList.toggle('expanded');
         toggle?.setAttribute('aria-expanded', String(open));
@@ -1865,13 +2041,14 @@ const UI = {
     document.addEventListener('click', async (ev) => {
       const btn = ev.target.closest?.('.clone-copy');
       if (!btn) return;
-      /* Copy only the displayed commands, excluding shell prompts. */
+      /* Commands exclude prompts; code blocks retain every displayed byte. */
+      const block = btn.closest('.release-code');
       const codes = btn.parentElement?.querySelectorAll('code');
-      const text = codes && codes.length
-        ? [...codes].map((c) => c.textContent.trim()).filter(Boolean).join('\n')
-        : '';
+      const text = block ? block.querySelector('code').textContent : codes && codes.length
+        ? [...codes].map((code) => code.textContent.trim()).filter(Boolean).join('\n') : '';
       if (!text) return;
-      const status = Utils.$('#copy-status');
+      const status = block?.nextElementSibling?.matches('.code-copy-status')
+        ? block.nextElementSibling : Utils.$('#copy-status');
       try {
         await navigator.clipboard.writeText(text);
       } catch (e) {
@@ -1882,11 +2059,11 @@ const UI = {
         catch { /* The legacy clipboard API can also be unavailable. */ }
         finally { ta.remove(); btn.focus(); }
         if (!copied) {
-          if (status) status.textContent = 'Copy failed — select and copy the command manually.';
+          if (status) status.textContent = `Copy failed — select and copy the ${block ? 'code block' : 'command'} manually.`;
           return;
         }
       }
-      if (status) status.textContent = 'Source clone command copied.';
+      if (status) status.textContent = block ? 'Code block copied.' : 'Source clone command copied.';
       const prev = btn.innerHTML;
       btn.innerHTML = UI.ICONS.check;
       setTimeout(() => { btn.innerHTML = prev; }, 1200);
@@ -1912,6 +2089,7 @@ const UI = {
     this.renderKpis(data);
     this.renderTicker(data.ticker);
     this.renderBranches(data);
+    Roadmap.render(data);
     this.renderReleases(data);
     const unavailable = (prefix) => ['open', 'closed'].filter((state) => data.mode !== 'live'
       || data.missingFeeds?.includes(prefix + state[0].toUpperCase() + state.slice(1)));
@@ -1922,6 +2100,125 @@ const UI = {
     this.renderGaugeCaptions(data);
     this.setFeedBadge(data.mode);
     this.renderFooterSync();
+  },
+};
+
+/* ----------------------------------------------------------------------------
+ * Roadmap — public milestone quest log and read-only project views.
+ * ------------------------------------------------------------------------- */
+const Roadmap = {
+  render(data) {
+    const root = Utils.$('#roadmap-content');
+    if (!root) return;
+    const milestones = data.milestones;
+    root.innerHTML = `
+      <div class="roadmap-controls">
+        <div class="pkg-tabs roadmap-tabs" role="tablist" aria-label="Roadmap views">
+          <button class="pkg-tab active" type="button" role="tab" id="milestones-tab" aria-controls="milestones-view" aria-selected="true" data-view="milestones">Milestones</button>
+          <button class="pkg-tab" type="button" role="tab" id="kanban-tab" aria-controls="kanban-view" aria-selected="false" tabindex="-1" data-view="kanban">Kanban</button>
+        </div>
+        <a class="pkg-cta" href="https://github.com/orgs/${CONFIG.owner}/projects/${CONFIG.roadmapProject}/views/3" target="_blank" rel="noopener">View project ${UI.ICONS.external}</a>
+      </div>
+      <div class="roadmap-view" id="milestones-view" role="tabpanel" aria-labelledby="milestones-tab">
+        ${milestones == null ? '<p class="empty-note">// milestone feed unavailable — view milestones on GitHub</p>' : !milestones.length ? '<p class="empty-note">// no GitHub milestones published</p>' : milestones.map((milestone) => {
+          const total = milestone.open + milestone.closed;
+          return `<article class="panel milestone-card" data-milestone="${milestone.number}">
+            <div class="milestone-heading">${milestone.state === 'closed' ? UI.ICONS.closed : UI.ICONS.issue}
+              <h3><a href="https://github.com/${CONFIG.owner}/${CONFIG.repo}/milestone/${milestone.number}" target="_blank" rel="noopener">${Utils.esc(milestone.title)}</a></h3>
+              <span class="tag">${milestone.state === 'closed' ? 'Closed' : 'Open'}</span>
+            </div>
+            <div class="milestone-progress-label"><span>${total ? `${milestone.closed} of ${total} items closed` : 'No tracked items'}</span>${total ? `<span>${Math.round(milestone.closed / total * 100)}%</span>` : ''}</div>
+            <progress value="${milestone.closed}" max="${Math.max(1, total)}" aria-label="${Utils.esc(milestone.title)}: ${milestone.closed} of ${total} items closed"></progress>
+            <details class="milestone-objectives"><summary>Objectives ${UI.ICONS.chevron}</summary>
+              ${milestone.description ? `<p class="milestone-description">${Utils.esc(milestone.description)}</p>` : ''}
+              <div class="milestone-items" aria-live="polite"><p class="empty-note">Open to load objectives.</p></div>
+            </details>
+          </article>`;
+        }).join('')}
+      </div>
+      <div class="roadmap-view" id="kanban-view" role="tabpanel" aria-labelledby="kanban-tab" hidden></div>`;
+    this.renderBoard(root, data);
+    root.querySelectorAll('[data-view]').forEach((tab) => tab.addEventListener('click', () => this.selectView(root, tab.dataset.view)));
+    root.querySelector('.roadmap-tabs').addEventListener('keydown', (event) => {
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+      const tabs = [...root.querySelectorAll('[data-view]')];
+      const index = tabs.indexOf(event.target);
+      if (index === -1) return;
+      event.preventDefault();
+      const next = event.key === 'Home' ? tabs[0] : event.key === 'End' ? tabs.at(-1)
+        : tabs[(index + (event.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+      this.selectView(root, next.dataset.view);
+      next.focus();
+    });
+    root.querySelectorAll('.milestone-card').forEach((card) => {
+      const milestone = milestones.find((entry) => entry.number === Number(card.dataset.milestone));
+      const details = card.querySelector('details');
+      details.addEventListener('toggle', () => { this.loadObjectives(details, milestone); });
+    });
+  },
+
+  selectView(root, view) {
+    if (!['milestones', 'kanban'].includes(view)) return;
+    root.querySelectorAll('[data-view]').forEach((tab) => {
+      const selected = tab.dataset.view === view;
+      tab.classList.toggle('active', selected);
+      tab.setAttribute('aria-selected', String(selected));
+      tab.tabIndex = selected ? 0 : -1;
+      root.querySelector(`#${tab.getAttribute('aria-controls')}`).hidden = !selected;
+    });
+  },
+
+  renderBoard(root, data) {
+    const pane = root.querySelector('#kanban-view');
+    const project = data.project;
+    if (!project) { pane.innerHTML = '<p class="empty-note">// project board unavailable — view the public project on GitHub</p>'; return; }
+    const options = new Map((data.milestones || []).map((milestone) => [milestone.number, milestone.title]));
+    for (const item of project.items) {
+      if (item.milestone !== null && !options.has(item.milestone)) options.set(item.milestone, `Milestone #${item.milestone}`);
+    }
+    pane.innerHTML = `<label class="roadmap-filter-label" for="roadmap-filter">Filter by milestone</label>
+      <select class="roadmap-filter" id="roadmap-filter"><option value="">All milestones</option>
+        ${[...options].map(([number, title]) => `<option value="${number}">${Utils.esc(title)}</option>`).join('')}
+        ${project.items.some((item) => item.milestone === null) ? '<option value="none">No milestone</option>' : ''}
+      </select><div class="kanban-grid"></div>`;
+    const filter = pane.querySelector('select');
+    const update = () => this.renderColumns(pane.querySelector('.kanban-grid'), project, filter.value);
+    filter.addEventListener('change', update);
+    update();
+  },
+
+  renderColumns(grid, project, filter) {
+    const items = project.items.filter((item) => !filter || (filter === 'none' ? item.milestone === null : item.milestone === Number(filter)));
+    const known = new Set(project.columns.map((column) => column.id));
+    const columns = project.columns.map((column) => ({ name: column.name, items: items.filter((item) => item.status === column.id) }));
+    const unassigned = items.filter((item) => item.status === null);
+    const unknown = items.filter((item) => item.status !== null && !known.has(item.status));
+    if (unassigned.length) columns.push({ name: 'No status', items: unassigned });
+    if (unknown.length) columns.push({ name: 'Status unavailable', items: unknown });
+    grid.innerHTML = columns.length ? columns.map((column, index) => `<section class="kanban-column" aria-labelledby="kanban-heading-${index}">
+      <h3 id="kanban-heading-${index}">${Utils.esc(column.name)} <span class="kanban-count">${column.items.length}</span></h3>
+      ${column.items.length ? `<ul class="kanban-items">${column.items.map((item) => `<li><a class="kanban-card" href="https://github.com/${CONFIG.owner}/${CONFIG.repo}/${item.kind === 'pr' ? 'pull' : 'issues'}/${item.number}" target="_blank" rel="noopener">
+        <span class="kanban-item-meta">${item.kind === 'pr' ? 'PR' : 'Issue'} #${item.number} · ${item.state === 'closed' ? 'Closed' : 'Open'}</span><span class="kanban-item-title">${Utils.esc(item.title)}</span>
+      </a></li>`).join('')}</ul>` : '<p class="empty-note">No items</p>'}
+    </section>`).join('') : '<p class="empty-note">// no project status columns configured</p>';
+  },
+
+  async loadObjectives(details, milestone) {
+    if (!details.open || details.dataset.loaded || details.dataset.loading) return;
+    details.dataset.loading = 'true';
+    const list = details.querySelector('.milestone-items');
+    list.innerHTML = '<p class="empty-note">// loading milestone objectives…</p>';
+    try {
+      const rows = await API.fetchMilestoneItems(milestone.number);
+      if (!details.isConnected) return;
+      if (!rows.length && milestone.open + milestone.closed > 0) throw new Error('Objective feed disagrees with counters');
+      list.innerHTML = rows.length ? `<ul class="milestone-item-list">${rows.map((row) => `<li><a href="https://github.com/${CONFIG.owner}/${CONFIG.repo}/${row.kind === 'pr' ? 'pull' : 'issues'}/${row.number}" target="_blank" rel="noopener">
+        ${row.state === 'closed' ? UI.ICONS.closed : UI.ICONS.issue}<span class="milestone-item-number">#${row.number}</span><span class="milestone-item-title">${Utils.esc(row.title)}</span><span class="milestone-item-state">${row.state === 'closed' ? 'Closed' : 'Open'}</span>
+      </a></li>`).join('')}</ul>` : '<p class="empty-note">// no milestone objectives</p>';
+      details.dataset.loaded = 'true';
+    } catch {
+      if (details.isConnected) list.innerHTML = '<p class="empty-note">// objectives unavailable — reopen to retry or view this milestone on GitHub</p>';
+    } finally { delete details.dataset.loading; }
   },
 };
 
@@ -2365,6 +2662,58 @@ const ContribModal = {
 };
 
 /* ----------------------------------------------------------------------------
+ * ReleaseModal — release-local changelog, using the contributor dialog chrome.
+ * ------------------------------------------------------------------------- */
+const ReleaseModal = {
+  el: null, box: null, _open: false, _lastFocus: null,
+
+  init() {
+    this.el = Utils.$('#release-changelog-modal');
+    if (!this.el) return;
+    this.box = this.el.querySelector('.pkg-modal');
+    trapDialogFocus(this.box);
+    this.el.addEventListener('click', (event) => {
+      if (event.target === this.el || event.target.closest?.('.term-dot-close')) this.close();
+    });
+    document.addEventListener('keydown', (event) => {
+      if (this._open && event.key === 'Escape') { event.preventDefault(); this.close(); }
+    });
+  },
+
+  open(release, changelog) {
+    if (!this.el || !changelog) return;
+    this._lastFocus = document.activeElement;
+    this.box.innerHTML = `
+      <div class="term-bar pkg-modal-bar">
+        <button class="term-dot term-dot-close" type="button" aria-label="Close release changelog">${UI.ICONS.close}</button>
+        <span class="term-dot"></span><span class="term-dot"></span>
+        <span class="term-title">changelog://${Utils.esc(release.tag)}</span>
+      </div>
+      <div class="pkg-modal-body">
+        <h3 class="pkg-modal-name" id="release-changelog-title">Changelog — ${Utils.esc(release.tag)}</h3>
+        <div class="md-body release-changelog-content">${Markdown.render(changelog)}</div>
+        <div class="item-actions"><a class="btn" href="https://github.com/${CONFIG.owner}/${CONFIG.repo}/releases/tag/${encodeURIComponent(release.tag)}" target="_blank" rel="noopener">View release on GitHub ${UI.ICONS.external}</a></div>
+      </div>`;
+    UI.prepareReleaseCode(this.box);
+    this.el.hidden = false;
+    this._open = true;
+    document.body.classList.add('pkg-modal-open');
+    requestAnimationFrame(() => { if (this._open) this.el.classList.add('on'); });
+    this.box.querySelector('.term-dot-close').focus();
+  },
+
+  close() {
+    if (!this._open) return;
+    this._open = false;
+    this.el.classList.remove('on');
+    document.body.classList.remove('pkg-modal-open');
+    const hide = () => { if (!this._open) this.el.hidden = true; };
+    if (Utils.reducedMotion) hide(); else setTimeout(hide, 300);
+    this._lastFocus?.focus?.();
+  },
+};
+
+/* ----------------------------------------------------------------------------
  * Reveal — IntersectionObserver scroll reveals + KPI count-up animation.
  * ------------------------------------------------------------------------- */
 const Reveal = {
@@ -2458,6 +2807,7 @@ async function boot() {
   });
   ItemModal.init();
   ContribModal.init();
+  ReleaseModal.init();
 
   /* Dock the HEAD FEED ticker as a sticky footer the instant the user
    * scrolls at all; undock when the page returns to the very top. A spacer

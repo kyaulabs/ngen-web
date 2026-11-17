@@ -6,7 +6,7 @@ export default defineConfig({
     transform(code, id) {
       if (id === new URL('./space.js', import.meta.url).pathname) return { code: `${code}\nexport { Space };`, map: null };
       if (id === new URL('./app.js', import.meta.url).pathname) {
-        return { code: `${code}\nexport { CONFIG, SNAPSHOT, Utils, Markdown, Tip, Activity, API, Charts, UI, Docs, ItemModal, ContribModal, Reveal, STATE, boot };`, map: null };
+        return { code: `${code}\nexport { CONFIG, SNAPSHOT, Utils, Markdown, Tip, Activity, API, Charts, UI, Roadmap, Docs, ItemModal, ContribModal, ReleaseModal, Reveal, STATE, boot };`, map: null };
       }
     },
   }],

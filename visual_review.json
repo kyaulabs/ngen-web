@@ -27,16 +27,58 @@
       ]
     },
     {
+      "id": "section-headings",
+      "path": "/",
+      "readySelector": "body.loaded",
+      "captureSelector": "#vitals .sec-head",
+      "states": [
+        { "id": "dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": "#vitals .sec-head" }] }
+      ]
+    },
+    {
+      "id": "release-changelog",
+      "path": "/",
+      "readySelector": "body.loaded",
+      "captureSelector": "#release-changelog-modal .pkg-modal",
+      "states": [
+        { "id": "dark", "colorScheme": "dark", "actions": [{ "type": "click", "selector": ".release-changelog" }] },
+        { "id": "close-hover-dark", "colorScheme": "dark", "actions": [{ "type": "click", "selector": ".release-changelog" }, { "type": "hover", "selector": "#release-changelog-modal .term-dot-close" }] }
+      ]
+    },
+    {
+      "id": "release-code",
+      "path": "/",
+      "readySelector": "body.loaded",
+      "captureSelector": "#releases .md-body > h2 + .release-code",
+      "states": [
+        { "id": "dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": "#releases .md-body > h2 + .release-code pre" }] },
+        { "id": "copied-dark", "colorScheme": "dark", "actions": [{ "type": "click", "selector": "#releases .md-body > h2 + .release-code .clone-copy" }, { "type": "wait-for-selector", "selector": "#releases .md-body > h2 + .release-code use[href$=\"#check\"]" }] }
+      ]
+    },
+    {
+      "id": "roadmap",
+      "path": "/",
+      "readySelector": "body.loaded",
+      "captureSelector": "#milestones .roadmap-panel",
+      "states": [
+        { "id": "dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": ".roadmap-controls" }] },
+        { "id": "objectives-dark", "colorScheme": "dark", "actions": [{ "type": "click", "selector": ".milestone-card:first-child summary" }, { "type": "wait-for-selector", "selector": ".milestone-item-list" }, { "type": "scroll-into-view", "selector": "#milestones .roadmap-panel" }] },
+        { "id": "kanban-dark", "colorScheme": "dark", "actions": [{ "type": "click", "selector": "#kanban-tab" }, { "type": "scroll-into-view", "selector": "#milestones .roadmap-panel" }] },
+        { "id": "roadmap-unavailable-dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": ".roadmap-controls" }] },
+        { "id": "roadmap-empty-dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": ".roadmap-controls" }] }
+      ]
+    },
+    {
       "id": "branches",
       "path": "/",
       "readySelector": "body.loaded",
-      "captureSelector": "#branches",
+      "captureSelector": "#branches-list",
       "states": [
-        { "id": "dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": "#branches .sec-head" }] },
-        { "id": "offline-dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": "#branches .sec-head" }] },
-        { "id": "checks-failed-dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": "#branches .sec-head" }] },
-        { "id": "checks-empty-dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": "#branches .sec-head" }] },
-        { "id": "checks-unavailable-dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": "#branches .sec-head" }] },
+        { "id": "dark", "colorScheme": "dark", "actions": [{ "type": "scroll-into-view", "selector": "#branches-list" }, { "type": "hover", "selector": "#branches-list" }] },
+        { "id": "offline-dark", "colorScheme": "dark", "actions": [{ "type": "scroll-into-view", "selector": "#branches-list" }, { "type": "hover", "selector": "#branches-list" }] },
+        { "id": "checks-failed-dark", "colorScheme": "dark", "actions": [{ "type": "scroll-into-view", "selector": "#branches-list" }, { "type": "hover", "selector": "#branches-list" }] },
+        { "id": "checks-empty-dark", "colorScheme": "dark", "actions": [{ "type": "scroll-into-view", "selector": "#branches-list" }, { "type": "hover", "selector": "#branches-list" }] },
+        { "id": "checks-unavailable-dark", "colorScheme": "dark", "actions": [{ "type": "scroll-into-view", "selector": "#branches-list" }, { "type": "hover", "selector": "#branches-list" }] },
         { "id": "checks-focus-dark", "colorScheme": "dark", "actions": [{ "type": "focus", "selector": ".branch-card:first-child .branch-checks" }] }
       ]
     },
@@ -120,7 +162,8 @@
       "readySelector": "body.loaded",
       "captureSelector": "#releases .release-card",
       "states": [
-        { "id": "dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": ".release-head" }] }
+        { "id": "dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": ".release-head" }] },
+        { "id": "collapsed-dark", "colorScheme": "dark", "actions": [{ "type": "click", "selector": ".release-toggle" }, { "type": "wait-for-selector", "selector": ".release-card:not(.expanded)" }] }
       ]
     }
   ]

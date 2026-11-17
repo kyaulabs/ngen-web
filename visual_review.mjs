@@ -1,4 +1,4 @@
-// $KYAULabs: visual_review.mjs kyau@aura.kyaulabs 2026/11/16 -0800 Exp $
+// $KYAULabs: visual_review.mjs kyau@aura.kyaulabs 2026/11/17 -0800 Exp $
 
 import {Buffer} from 'node:buffer';
 import {execFileSync} from 'node:child_process';
@@ -13,7 +13,7 @@ const ID = /^[a-z][a-z0-9-]{0,63}$/;
 const LOOPBACK = new Set(['127.0.0.1', '[::1]', 'localhost']);
 const COLOR_SCHEMES = new Set(['light', 'dark', 'no-preference']);
 const PRESS_KEYS = new Set(['Enter', 'Escape', 'Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
-const ACTION_TYPES = new Set(['click', 'hover', 'focus', 'press', 'wait-for-selector']);
+const ACTION_TYPES = new Set(['click', 'hover', 'focus', 'press', 'wait-for-selector', 'scroll-into-view']);
 
 function exactKeys(value, keys) {
 	if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
@@ -174,6 +174,7 @@ export async function applyVisualReviewActions(page, actions) {
 		else if (action.type === 'hover') await locator.hover();
 		else if (action.type === 'focus') await locator.focus();
 		else if (action.type === 'press') await locator.press(action.key);
+		else if (action.type === 'scroll-into-view') await locator.evaluate((element) => element.scrollIntoView({block: 'center', behavior: 'instant'}));
 		else await locator.waitFor({state: 'visible'});
 	}
 }
@@ -336,8 +337,20 @@ export async function publishVisualReviewEvidence(
 	assertNoPageErrors(errors);
 	// Use the prepared viewport instead of element/full-document capture, which
 	// can scroll or resize the page and lose an intentionally applied hover.
-	const clip = capture.captureSelector ? await page.locator(capture.captureSelector).evaluate((element) => {
+	const clip = capture.captureSelector ? await page.locator(capture.captureSelector).evaluate(async (element) => {
+		// Opening classes may be applied on the next frame. Measure the painted
+		// geometry, not a transform that screenshot() will fast-forward later.
+		await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+		await Promise.all(element.getAnimations({subtree: true})
+			.filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity)
+			.map((animation) => animation.finished.catch(() => {})));
 		const rect = element.getBoundingClientRect();
+		const centerX = rect.x + rect.width / 2, centerY = rect.y + rect.height / 2;
+		const edges = [[centerX, rect.top + 1], [centerX, rect.bottom - 1], [rect.left + 1, centerY], [rect.right - 1, centerY]];
+		if (edges.some(([x, y]) => {
+			const hit = document.elementFromPoint(x, y);
+			return hit && !element.contains(hit);
+		})) throw new Error('visual review component is obscured; reposition it before capture');
 		return {x: rect.x, y: rect.y, width: rect.width, height: rect.height};
 	}) : undefined;
 	if (clip) {
