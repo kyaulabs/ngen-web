@@ -58,8 +58,9 @@
   --line-strong: color-mix(in srgb, #7D9BD2 30%, transparent);
   --ink-0: var(--ngen-text);
   --ink-1: var(--ngen-muted);
-  /* Prism's subdued pigment fails normal-text contrast; keep small labels readable. */
-  --ink-2: var(--ngen-muted);
+  /* Preserve Prism's neutral hierarchy; lift secondary ink minimally for 4.5:1
+     against the solid page/panel/header bases without whitening its links. */
+  --ink-2: color-mix(in srgb, var(--ngen-subtle) 78%, var(--ngen-muted));
   --accent: var(--ngen-accent);
   --accent-2: var(--ngen-secondary);
   --accent-3: var(--ngen-tertiary);
@@ -1639,6 +1640,8 @@ body.pkg-modal-open { overflow: hidden; }
 }
 .contrib-card:hover { border-color: var(--line-strong); }
 .contrib-card .pkg-cta { align-self: flex-start; }
+/* Match Prism's typographic » ink size and baseline, not a full-em UI icon. */
+.contrib-card .pkg-cta .fa-icon { width: 0.67em; height: 0.67em; vertical-align: -0.08em; }
 
 .contrib-top { display: flex; align-items: center; gap: 14px; }
 

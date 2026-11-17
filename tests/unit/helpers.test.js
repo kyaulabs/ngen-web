@@ -1,4 +1,4 @@
-// $KYAULabs: helpers.test.js kyau@aura.kyaulabs 2026/11/13 -0800 Exp $
+// $KYAULabs: helpers.test.js kyau@aura.kyaulabs 2026/11/16 -0800 Exp $
 import { FixtureSynth as Synth } from '../fixtures.js';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Utils, Markdown, Tip, Docs } from '../../app.js';
@@ -104,6 +104,29 @@ describe('safe Markdown rendering', () => {
     expect(result).not.toContain('/commit/1234567');
     expect(Markdown.render('```\nabcdef0 1234567\n```')).toContain('/commit/abcdef0');
     expect(Markdown.render('https://example.com/path')).toContain('>https://example.com/path</a>');
+  });
+});
+
+describe('release note branding', () => {
+  const logo = '<p align="center">\n<picture>\n<source srcset="https://example.com/brand/logos/png/ngen-wordmark-dark-640.png">\n<img src="https://example.com/brand/logos/png/ngen-wordmark-light-640.png" alt="NGEN">\n</picture>\n</p>';
+  it('removes a multiline leading logo without changing markdown or escaping', () => {
+    const html = Markdown.renderRelease(`\r\n${logo}\r\n\r\n## Highlights\n\n**Keep notes**\n\n<script>alert(1)</script>`);
+    expect(html).toBe('<h2>Highlights</h2>\n<p><strong>Keep notes</strong></p>\n<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>');
+  });
+  it('preserves non-branding pictures and introductory text', () => {
+    const diagram = logo.replaceAll('/brand/logos/png/ngen-wordmark-', '/diagrams/flight-');
+    expect(Markdown.renderRelease(diagram)).toBe(Markdown.render(diagram));
+    expect(Markdown.renderRelease(`Introduction\n\n${logo}`)).toBe(Markdown.render(`Introduction\n\n${logo}`));
+  });
+  it('leaves later logos, code examples and general markdown consumers unchanged', () => {
+    const example = `## Example\n\n${logo}\n\n\`\`\`html\n${logo}\n\`\`\``;
+    expect(Markdown.renderRelease(example)).toBe(Markdown.render(example));
+    expect(Markdown.render(logo)).toContain('&lt;picture&gt;');
+  });
+  it('handles absent branding and retains ordinary markdown images', () => {
+    expect(Markdown.renderRelease(null)).toBe('');
+    expect(Markdown.renderRelease('## Notes')).toBe('<h2>Notes</h2>');
+    expect(Markdown.renderRelease('![Diagram](https://example.com/flight.png)')).toContain('<img src="https://example.com/flight.png"');
   });
 });
 
