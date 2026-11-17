@@ -1,6 +1,6 @@
-// $KYAULabs: api.test.js kyau@aura.kyaulabs 2026/11/12 -0800 Exp $
+// $KYAULabs: api.test.js kyau@aura.kyaulabs 2026/11/16 -0800 Exp $
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { API, CONFIG, SNAPSHOT } from '../../app.js';
+import { API, CONFIG, SNAPSHOT, UI } from '../../app.js';
 
 beforeEach(() => { sessionStorage.clear(); vi.stubGlobal('fetch', vi.fn()); });
 const response = (data, status = 200, link = null) => ({ ok: status === 200, status, json: async () => data, text: async () => data, headers: { get: () => link } });
@@ -67,12 +67,64 @@ describe('exact counts and normalization', () => {
   });
 });
 
+describe('branch commit times', () => {
+  it('renders each branch head commit time instead of the repository push time', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-11-16T12:00:00Z'));
+    const main = { sha: 'a'.repeat(40), commit: { author: { date: '2026-11-01T00:00:00Z' }, committer: { date: '2026-11-02T12:00:00Z' } } };
+    const develop = { sha: 'b'.repeat(40), commit: { author: { date: '2026-11-02T00:00:00Z' }, committer: { date: '2026-11-16T11:00:00Z' } } };
+    fetch.mockImplementation(async (url) => {
+      const path = new URL(url).pathname;
+      if (path === '/repos/kyaulabs/ngen') return response({ ...SNAPSHOT.repo, pushed_at: '2026-11-16T11:22:00Z' });
+      if (path.endsWith('/branches')) return response([
+        { name: 'main', protected: true, commit: { sha: main.sha } },
+        { name: 'develop', protected: true, commit: { sha: develop.sha } },
+      ]);
+      if (path.endsWith('/commits')) return response([main]);
+      if (path.endsWith(`/commits/${develop.sha}`)) return response(develop);
+      return response([]);
+    });
+    document.body.innerHTML = '<div id="branches-list"></div>';
+    UI.renderBranches(await API.loadAll());
+    const metadata = [...document.querySelectorAll('.branch-meta')].map((el) => el.textContent.replace(/\s+/g, ' ').trim());
+    expect(metadata).toEqual(['browse tree · committed 14d ago', 'browse tree · committed 1h ago']);
+    expect(fetch.mock.calls.some(([url]) => new URL(url).pathname.endsWith(`/commits/${main.sha}`))).toBe(false);
+    expect(fetch.mock.calls.some(([url]) => new URL(url).pathname.endsWith(`/commits/${develop.sha}`))).toBe(true);
+  });
+  it.each([
+    [403, null],
+    [200, { commit: { committer: { date: 'invalid' } } }],
+    [200, { commit: { author: { date: '2026-11-16T11:00:00Z' } } }],
+  ])('keeps branch links and known times when head metadata is unavailable (%s, %j)', async (status, detail) => {
+    const main = { sha: 'a'.repeat(40), commit: { committer: { date: '2026-11-02T12:00:00Z' } } };
+    fetch.mockImplementation(async (url) => {
+      const path = new URL(url).pathname;
+      if (path === '/repos/kyaulabs/ngen') return response(SNAPSHOT.repo);
+      if (path.endsWith('/branches')) return response([
+        { name: 'main', commit: { sha: main.sha } },
+        { name: 'develop', commit: { sha: 'b'.repeat(40) } },
+      ]);
+      if (path.endsWith('/commits')) return response([main]);
+      if (path.includes('/commits/')) return response(detail, status);
+      return response([]);
+    });
+    document.body.innerHTML = '<div id="branches-list"></div>';
+    UI.renderBranches(await API.loadAll());
+    const cards = document.querySelectorAll('.branch-card');
+    expect(cards).toHaveLength(2);
+    expect(cards[0].querySelector('time').dateTime).toBe('2026-11-02T12:00:00Z');
+    expect(cards[1].querySelector('time')).toBeNull();
+    expect(cards[1].querySelector('.branch-meta').textContent.trim()).toBe('browse tree');
+  });
+});
+
 describe('data aggregation', () => {
   it('uses the verified snapshot without inventing records when offline', async () => {
     fetch.mockRejectedValue(new Error('offline'));
     const data = await API.loadAll();
     expect(data.mode).toBe('sim');
     expect(data.repo).toEqual(SNAPSHOT.repo);
+    expect(data.branches.every((branch) => !branch.committedAt)).toBe(true);
+    expect(fetch.mock.calls.some(([url]) => new URL(url).pathname.includes('/commits/'))).toBe(false);
     expect(data.days).toHaveLength(364);
     expect(data.counts).toEqual(SNAPSHOT.counts);
     expect(data.releasesSynthetic).toBe(true);

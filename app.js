@@ -846,6 +846,20 @@ const API = {
       : SNAPSHOT.branches.map((b) => ({ ...b, isDefault: b.name === repo.default_branch })))
       .filter((b) => !Utils.isReleaseBranch(b.name));
 
+    /* A repository push can affect any branch. Use each listed HEAD's
+       committer date instead; missing metadata stays unavailable. */
+    if (Array.isArray(R.branches) && R.branches.length) {
+      await Promise.all(branches.map(async (branch) => {
+        if (!branch.sha) return;
+        try {
+          const head = (Array.isArray(R.commits) && R.commits.find((c) => c.sha === branch.sha))
+            || await this.fetchJSON(`/commits/${encodeURIComponent(branch.sha)}`);
+          const date = head?.commit?.committer?.date;
+          if (typeof date === 'string' && Number.isFinite(Date.parse(date))) branch.committedAt = date;
+        } catch (e) { /* Leave this branch's time unavailable without hiding other branches. */ }
+      }));
+    }
+
     /* Preserve full release notes. Empty feeds remain empty; failures are labeled. */
     const liveReleases = Array.isArray(R.releases)
       ? R.releases.map((r, i) => ({
@@ -1463,9 +1477,8 @@ const UI = {
         </div>
         <a class="branch-sha" href="${base}/commit/${Utils.esc(b.sha)}" target="_blank" rel="noopener" title="View HEAD commit">${Utils.esc(b.sha.slice(0, 7))}</a>
         <p class="branch-meta">
-          HEAD pointer · branch protection status
-          ${b.isDefault ? ` · pushed ${Utils.timeAgo(data.repo.pushed_at)}` : ''}
-          · <a href="${base}/tree/${Utils.esc(b.name)}" target="_blank" rel="noopener">browse tree</a>
+          <a href="${base}/tree/${Utils.esc(b.name)}" target="_blank" rel="noopener">browse tree</a>
+          ${b.committedAt ? ` · <time datetime="${Utils.esc(b.committedAt)}">committed ${Utils.timeAgo(b.committedAt)}</time>` : ''}
         </p>
       </article>`).join('') || '<p class="empty-note">// no branch data</p>';
   },

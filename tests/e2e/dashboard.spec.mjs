@@ -49,6 +49,30 @@ test('preserves the dashboard with NGEN identity, live charts and an honest game
   expect(errors).toEqual([]);
 });
 
+for (const width of [1920, 390, 320]) {
+  test(`shows branch-specific commit times after browse tree at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: width === 1920 ? 1080 : 844 });
+    await page.clock.setFixedTime(new Date('2026-11-17T00:15:16Z'));
+    await load(page);
+    const main = page.locator('.branch-card').filter({ has: page.locator('.branch-name', { hasText: /^main$/ }) });
+    const develop = page.locator('.branch-card').filter({ has: page.locator('.branch-name', { hasText: /^develop$/ }) });
+    await expect(main.locator('.branch-meta')).toHaveText('browse tree · committed 14d ago');
+    await expect(develop.locator('.branch-meta')).toHaveText('browse tree · committed 1h ago');
+    await expect(main.locator('.tag-default')).toHaveText('default');
+    for (const card of [main, develop]) {
+      await expect(card.locator('.tag-protected')).toHaveText('protected');
+      const meta = card.locator('.branch-meta');
+      await expect(meta).not.toContainText('HEAD pointer');
+      await expect(meta).not.toContainText('branch protection status');
+      await expect(meta.locator('a')).toHaveAttribute('href', /\/tree\/(?:main|develop)$/);
+      await card.locator('.branch-sha').focus();
+      await page.keyboard.press('Tab');
+      await expect(meta.locator('a')).toBeFocused();
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  });
+}
+
 for (const [width, height, scale] of [[1920, 1039, 2], [2560, 1385, 1.5], [3440, 1440, 1]]) {
   test(`fits hero actions at ${width}×${height} CSS pixels and ${scale}× device scale`, async ({ browser }) => {
     const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: scale, reducedMotion: 'reduce' });

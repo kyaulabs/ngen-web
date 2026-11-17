@@ -1,4 +1,4 @@
-// $KYAULabs: ui.test.js kyau@aura.kyaulabs 2026/11/13 -0800 Exp $
+// $KYAULabs: ui.test.js kyau@aura.kyaulabs 2026/11/16 -0800 Exp $
 import { FixtureSynth as Synth } from '../fixtures.js';
 import { readFileSync } from 'node:fs';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
@@ -44,6 +44,19 @@ describe('dashboard renderers', () => {
     expect(document.querySelector('#feed-badge-text').textContent).toBe('LIVE');
     expect(document.querySelector('#footer-sync').textContent).not.toBe('');
     UI.renderAll(data);
+  });
+  it('puts browse tree first without redundant branch metadata labels', () => {
+    UI.renderBranches(data);
+    for (const card of document.querySelectorAll('.branch-card')) {
+      const meta = card.querySelector('.branch-meta');
+      expect(meta.textContent).not.toContain('HEAD pointer');
+      expect(meta.textContent).not.toContain('branch protection status');
+      expect(meta.textContent.trim().startsWith('browse tree')).toBe(true);
+      expect(meta.firstElementChild.getAttribute('href')).toContain('/tree/');
+      expect(card.querySelector('.branch-sha').getAttribute('href')).toContain('/commit/');
+      expect(card.querySelector('.tag-protected')).not.toBeNull();
+    }
+    expect(document.querySelectorAll('.tag-default')).toHaveLength(1);
   });
   it('handles absent optional markup and missing repository fields', () => {
     UI.renderChips({ ...data, repo: { pushed_at: new Date().toISOString() } });
