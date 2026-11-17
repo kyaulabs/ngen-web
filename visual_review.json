@@ -162,7 +162,8 @@
       "readySelector": "body.loaded",
       "captureSelector": "#releases .release-card",
       "states": [
-        { "id": "dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": ".release-head" }] },
+        { "id": "dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": ".release-title" }] },
+        { "id": "changelog-hover-dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": ".release-changelog" }] },
         { "id": "collapsed-dark", "colorScheme": "dark", "actions": [{ "type": "click", "selector": ".release-toggle" }, { "type": "wait-for-selector", "selector": ".release-card:not(.expanded)" }] }
       ]
     }
