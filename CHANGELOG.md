@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.\
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines
 and [Semantic Versioning](https://semver.org/spec/v2.0.0.html) for versioning adherance.
 
+## [💾](https://github.com/kyaulabs/ngen-web/releases/tag/v0.1.16) [0.1.16](https://github.com/kyaulabs/ngen-web/compare/v0.1.15...v0.1.16) - (2026-11-18)
+
+### 🐛 Bug Fixes
+
+- [Roadmap] Use green checks for closed objectives ([dbb782a](https://github.com/kyaulabs/ngen-web/commit/dbb782a4888536663290b62f1311a742946b5614))
+- [Roadmap] Integrate green objective checks (#54) ([853be18](https://github.com/kyaulabs/ngen-web/commit/853be18fadb66194b74e465db5921db5ab7fa79c))
+<!-- Auto-generated on 2026-11-18T10:36:36.819317405-08:00 -->
 ## [💾](https://github.com/kyaulabs/ngen-web/releases/tag/v0.1.15) [0.1.15](https://github.com/kyaulabs/ngen-web/compare/v0.1.14...v0.1.15) - (2026-11-18)
 
 ### 🐛 Bug Fixes
