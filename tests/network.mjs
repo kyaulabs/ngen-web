@@ -44,9 +44,9 @@ export async function controlNetwork(page, offline = false, reviewState = 'dark'
     if (url.pathname === '/orgs/kyaulabs/projectsV2/4') data = { public: true };
     if (url.pathname === '/orgs/kyaulabs/projectsV2/4/fields') data = [{ id: 10, name: 'Status', data_type: 'single_select', options: [{ id: 'todo', name: { raw: 'Todo' } }, { id: 'doing', name: { raw: 'In Progress' } }, { id: 'done', name: { raw: 'Done' } }] }];
     if (url.pathname === '/orgs/kyaulabs/projectsV2/4/items') data = [
-      { number: 12, title: 'Define coordinate frames', state: 'open', status: 'todo', milestone: 1 },
-      { number: 15, title: 'Build creator workflow', state: 'open', status: 'doing', milestone: 11 },
-      { number: 14, title: 'Verify trajectory bounds', state: 'closed', status: 'done', milestone: 1 },
+      { number: 12, title: 'M4-B: Define coordinate frames', state: 'open', status: 'todo', milestone: 1 },
+      { number: 55, title: 'C1-D: Build creator workflow', state: 'open', status: 'doing', milestone: 11 },
+      { number: 14, title: 'M4-D: Verify trajectory bounds', state: 'closed', status: 'done', milestone: 1 },
     ].map((row) => ({ id: row.number, content_type: 'Issue', fields: [{ id: 10, value: { id: row.status } }], content: { number: row.number, title: row.title, state: row.state, url: `https://api.github.com/repos/kyaulabs/ngen/issues/${row.number}`, milestone: { number: row.milestone } } }));
     if (url.pathname.endsWith('/languages')) data = { 'C++': 180000, CMake: 18000, Python: 8000 };
     if (url.pathname.endsWith('/contributors')) data = snapshot.contributors;
@@ -70,9 +70,9 @@ export async function controlNetwork(page, offline = false, reviewState = 'dark'
     if (url.pathname.endsWith('/releases')) data = [{ tag_name: 'v0.1.0-fixture', name: 'NGEN v0.1.0', body: `${releaseLogo}\n\n${releaseNotes}`, published_at: '2026-11-12T00:00:00Z', html_url: `${base}/releases`, assets: ['ngen-source.tar.gz', 'ngen-source.tar.gz.sha256'].map((name) => ({ name, browser_download_url: `${base}/releases/download/v0.1.0-fixture/${name}` })) }];
     if (url.pathname.endsWith('/issues')) data = [{ ...issue, state: url.searchParams.get('state') }];
     if (url.pathname.endsWith('/issues') && url.searchParams.has('milestone')) data = url.searchParams.get('milestone') === '1'
-      ? [{ ...issue, title: 'Define coordinate frames', state: 'open' }, { ...issue, number: 14, title: 'Verify trajectory bounds', state: 'closed' }]
+      ? [{ ...issue, number: 14, title: 'M4-D: Verify trajectory bounds', state: 'closed' }, { ...issue, title: 'M4-B: Define coordinate frames', state: 'open' }]
       : url.searchParams.get('milestone') === '11'
-        ? [{ ...issue, number: 15, title: 'Build creator workflow', state: 'open' }, { ...issue, number: 73, title: 'Create a standalone project workflow', state: 'closed' }]
+        ? [{ ...issue, number: 55, title: 'C1-D: Build creator workflow', state: 'open' }, { ...issue, number: 73, title: 'C1-B: Create a standalone project workflow', state: 'closed' }]
         : [];
     if (url.pathname.endsWith('/pulls')) data = [{ ...issue, number: 13, state: url.searchParams.get('state'), html_url: `${base}/pull/13`, head: { ref: 'feature' }, base: { ref: 'develop' } }];
     if (reviewState === 'roadmap-empty-dark' && (url.pathname.endsWith('/milestones') || url.pathname === '/orgs/kyaulabs/projectsV2/4/items')) data = [];

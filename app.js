@@ -847,7 +847,7 @@ const API = {
       state: row.state, open: row.open_issues, closed: row.closed_issues })).sort((a, b) => a.number - b.number);
   },
 
-  /** Fetch the complete issue/PR list for the viewed milestone. */
+  /** Fetch the complete issue/PR list, ordered by title (including step prefixes). */
   async fetchMilestoneItems(number) {
     if (!Number.isSafeInteger(number) || number < 1) throw new Error('Invalid milestone number');
     const rows = await this.fetchList(`/issues?state=all&milestone=${number}`);
@@ -856,7 +856,7 @@ const API = {
         throw new Error('Invalid milestone objective');
       }
       return { kind: row.pull_request ? 'pr' : 'issue', number: row.number, title: row.title, state: row.state };
-    });
+    }).sort((a, b) => a.title.localeCompare(b.title, 'en', { sensitivity: 'base' }));
   },
 
   /** Read only the public project's active NGEN cards and its actual status definitions. */
