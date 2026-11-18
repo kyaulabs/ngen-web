@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.\
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines
 and [Semantic Versioning](https://semver.org/spec/v2.0.0.html) for versioning adherance.
 
+## [💾](https://github.com/kyaulabs/ngen-web/releases/tag/v0.1.15) [0.1.15](https://github.com/kyaulabs/ngen-web/compare/v0.1.14...v0.1.15) - (2026-11-18)
+
+### 🐛 Bug Fixes
+
+- [Metadata] Show the branded Open Graph image ([c188d7c](https://github.com/kyaulabs/ngen-web/commit/c188d7c5edeeb3acc1ea719f9a2e6306c04f99ef))
+- [Metadata] Integrate branded Open Graph image (#51) ([5a605b8](https://github.com/kyaulabs/ngen-web/commit/5a605b8cb237267fb692afa553952048a802d0b6))
+<!-- Auto-generated on 2026-11-17T20:53:08.870660464-08:00 -->
 ## [💾](https://github.com/kyaulabs/ngen-web/releases/tag/v0.1.14) [0.1.14](https://github.com/kyaulabs/ngen-web/compare/v0.1.13...v0.1.14) - (2026-11-18)
 
 ### 💄 Styling

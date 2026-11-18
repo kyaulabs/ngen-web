@@ -159,8 +159,8 @@ curl -I https://ngen.example.com/.git/HEAD
 curl -I https://ngen.example.com/not-a-route
 ```
 
-Expect `200` with appropriate HTML, JavaScript, CSS, and SVG content types for the first four requests, and `404` for the last six. Also check `/vendor/fontawesome-icons.svg` (`image/svg+xml`), `/brand/web/fonts/NeoSansPro-Regular.ttf` (`font/ttf`) and `/brand/web/fonts/OperatorMonoLigNerdFont-Regular.otf` (`font/otf`): all must return `200`. For an internal HTTP check, use the internal address and the configured `Host` header instead.
+Expect `200` with appropriate HTML, JavaScript, CSS, and SVG content types for the first four requests, and `404` for the last six. Also check `/vendor/fontawesome-icons.svg` (`image/svg+xml`), `/brand/web/fonts/NeoSansPro-Regular.ttf` (`font/ttf`), `/brand/web/fonts/OperatorMonoLigNerdFont-Regular.otf` (`font/otf`) and `/brand/social/ngen-og-dark.png` (`image/png`): all must return `200`. For an internal HTTP check, use the internal address and the configured `Host` header instead.
 
 Finally, open the HTTPS site and check the hero/background animation, source-command copy button, and dashboard. Confirm the page stays dark even with a light OS preference or an old saved light preference. A GitHub rate limit can legitimately produce snapshot/unavailable-feed states; missing local assets or JavaScript console errors are deployment failures. No process should need to listen on port 4173 in production.
 
-See [DEVELOPMENT.md](DEVELOPMENT.md) for build/test tooling. Set absolute Open Graph image and page URLs in `index.html` once the production origin is known.
+See [DEVELOPMENT.md](DEVELOPMENT.md) for build/test tooling. `index.html` uses absolute Open Graph URLs for `https://ngen.kyaulabs.com/`. Update both URLs for a different public hostname.
