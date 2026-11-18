@@ -1,4 +1,4 @@
-// $KYAULabs: app.js kyau@aura.kyaulabs 2026/11/17 -0800 Exp $
+// $KYAULabs: app.js kyau@aura.kyaulabs 2026/11/18 -0800 Exp $
 /* NGEN telemetry dashboard. Adapted from the KYAU Labs Prism dashboard (AGPL-3.0).
    Public GitHub data is untrusted; escape text and sanitize markdown links.
    Snapshot: data/snapshot.json. Missing record feeds remain empty. */
@@ -2290,9 +2290,12 @@ const Roadmap = {
       const rows = await API.fetchMilestoneItems(milestone.number);
       if (!details.isConnected) return;
       if (!rows.length && milestone.open + milestone.closed > 0) throw new Error('Objective feed disagrees with counters');
-      list.innerHTML = rows.length ? `<ul class="milestone-item-list">${rows.map((row) => `<li><a href="https://github.com/${CONFIG.owner}/${CONFIG.repo}/${row.kind === 'pr' ? 'pull' : 'issues'}/${row.number}" target="_blank" rel="noopener">
-        ${row.state === 'closed' ? UI.ICONS.closed : UI.ICONS.issue}<span class="milestone-item-number">#${row.number}</span><span class="milestone-item-title">${Utils.esc(row.title)}</span><span class="milestone-item-state">${row.state === 'closed' ? 'Closed' : 'Open'}</span>
-      </a></li>`).join('')}</ul>` : '<p class="empty-note">// no milestone objectives</p>';
+      list.innerHTML = rows.length ? `<ul class="milestone-item-list">${rows.map((row) => {
+        const closed = row.state === 'closed';
+        return `<li${closed ? ' class="milestone-item-closed"' : ''}><a href="https://github.com/${CONFIG.owner}/${CONFIG.repo}/${row.kind === 'pr' ? 'pull' : 'issues'}/${row.number}" target="_blank" rel="noopener">
+          ${closed ? UI.ICONS.check : UI.ICONS.issue}<span class="milestone-item-number">#${row.number}</span><span class="milestone-item-title">${Utils.esc(row.title)}</span><span class="milestone-item-state">${closed ? 'Closed' : 'Open'}</span>
+        </a></li>`;
+      }).join('')}</ul>` : '<p class="empty-note">// no milestone objectives</p>';
       details.dataset.loaded = 'true';
     } catch {
       if (details.isConnected) list.innerHTML = '<p class="empty-note">// objectives unavailable — reopen to retry or view this milestone on GitHub</p>';
