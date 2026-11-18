@@ -59,13 +59,21 @@
       "id": "roadmap",
       "path": "/",
       "readySelector": "body.loaded",
-      "captureSelector": "#milestones .roadmap-panel",
+      "captureSelector": "#milestones .roadmap-content",
       "states": [
-        { "id": "dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": ".roadmap-controls" }] },
-        { "id": "objectives-dark", "colorScheme": "dark", "actions": [{ "type": "click", "selector": ".milestone-card:first-child summary" }, { "type": "wait-for-selector", "selector": ".milestone-item-list" }, { "type": "scroll-into-view", "selector": "#milestones .roadmap-panel" }] },
-        { "id": "kanban-dark", "colorScheme": "dark", "actions": [{ "type": "click", "selector": "#kanban-tab" }, { "type": "scroll-into-view", "selector": "#milestones .roadmap-panel" }] },
+        { "id": "kanban-dark", "colorScheme": "dark", "actions": [{ "type": "click", "selector": "#kanban-tab" }, { "type": "scroll-into-view", "selector": "#milestones .roadmap-content" }] },
         { "id": "roadmap-unavailable-dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": ".roadmap-controls" }] },
         { "id": "roadmap-empty-dark", "colorScheme": "dark", "actions": [{ "type": "hover", "selector": ".roadmap-controls" }] }
+      ]
+    },
+    {
+      "id": "roadmap-stems",
+      "path": "/",
+      "readySelector": "body.loaded",
+      "captureSelector": "#milestones-view",
+      "states": [
+        { "id": "dark", "colorScheme": "dark", "actions": [{ "type": "wait-for-selector", "selector": ".milestone-item-list" }, { "type": "scroll-into-view", "selector": "#milestones-view" }] },
+        { "id": "objectives-dark", "colorScheme": "dark", "actions": [{ "type": "click", "selector": ".milestone-next" }, { "type": "wait-for-selector", "selector": ".milestone-card[data-milestone='1'] .milestone-item-list" }, { "type": "scroll-into-view", "selector": "#milestones-view" }] }
       ]
     },
     {

@@ -286,9 +286,11 @@ test('shows a real-count quest log between Branches and Releases', async ({ page
   await load(page);
   const roadmap = page.locator('#milestones');
   await expect(roadmap.getByRole('heading', { name: 'Milestones', exact: true })).toBeVisible();
-  await expect(roadmap.locator('.milestone-card')).toHaveCount(2);
-  const first = roadmap.locator('.milestone-card').first();
-  await expect(first).toContainText('M4 — Controlled mission');
+  await expect(roadmap.locator('.milestone-card')).toHaveCount(1);
+  const first = roadmap.locator('.milestone-card');
+  await expect(first).toContainText('C1 — Creator SDK/toolchain');
+  await expect(roadmap.locator('.roadmap-current')).toHaveText('Current C1');
+  await expect(first.locator('details')).toHaveAttribute('open', '');
   await expect(first).toContainText('1 of 2 items closed');
   await expect(first.getByRole('progressbar')).toHaveAttribute('value', '1');
   await expect(first.getByRole('progressbar')).toHaveAttribute('max', '2');
@@ -297,13 +299,23 @@ test('shows a real-count quest log between Branches and Releases', async ({ page
   expect(await roadmap.evaluate((section) => Boolean(section.compareDocumentPosition(document.querySelector('#releases')) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
 });
 
-test('loads milestone objectives on expansion and preserves real item states and links', async ({ page }) => {
+test('loads objectives only for viewed milestones and preserves real item states and links', async ({ page }) => {
   const requests = [];
-  page.on('request', (request) => { if (new URL(request.url()).searchParams.has('milestone')) requests.push(request.url()); });
+  page.on('request', (request) => {
+    const number = new URL(request.url()).searchParams.get('milestone');
+    if (number) requests.push(number);
+  });
   await load(page);
-  expect(requests).toHaveLength(0);
-  const card = page.locator('.milestone-card').first();
-  await card.locator('summary').click();
+  const roadmap = page.locator('#milestones');
+  await expect(roadmap.locator('.milestone-item-list')).toContainText('Build creator workflow');
+  expect(requests).toEqual(['11']);
+  await roadmap.locator('summary').click();
+  await roadmap.getByRole('button', { name: 'Next milestone' }).click();
+  const card = roadmap.locator('.milestone-card');
+  await expect(card.locator('details')).toHaveAttribute('open', '');
+  await expect(roadmap.locator('.roadmap-current')).toHaveText('Current C1');
+  await expect(roadmap.getByRole('tab', { name: /C1.*current/i })).toHaveAttribute('aria-selected', 'false');
+  await expect(roadmap).not.toContainText(/current focus|viewing |return to current|creator track|engine track|· preview/i);
   await expect(card.locator('.milestone-item-list a')).toHaveCount(2);
   await expect(card.locator('.milestone-item-list')).toContainText('Define coordinate frames');
   await expect(card.locator('.milestone-item-list')).toContainText('Verify trajectory bounds');
@@ -311,7 +323,37 @@ test('loads milestone objectives on expansion and preserves real item states and
   await expect(card.locator('.milestone-item-list a').last()).toContainText('Closed');
   await card.locator('summary').click();
   await card.locator('summary').click();
-  expect(requests).toHaveLength(1);
+  expect(requests).toEqual(['11', '1']);
+});
+
+test('places Current opposite its milestone label with a stem and spaces View project', async ({ page }) => {
+  await load(page);
+  const roadmap = page.locator('#milestones');
+  const project = roadmap.getByRole('link', { name: 'View project' });
+  expect(await project.evaluate((link) => {
+    const text = document.createRange(); text.selectNodeContents(link.firstChild);
+    return link.querySelector('svg').getBoundingClientRect().left - text.getBoundingClientRect().right;
+  })).toBeGreaterThanOrEqual(4);
+  const beacon = roadmap.locator('.milestone-beacon');
+  const placement = () => beacon.evaluate((label) => {
+    const marker = label.parentElement;
+    const node = marker.querySelector('.milestone-node').getBoundingClientRect();
+    const title = marker.querySelector('.milestone-label').getBoundingClientRect();
+    const tag = label.getBoundingClientRect();
+    const stem = getComputedStyle(label, '::before');
+    const stemTop = tag.top + parseFloat(stem.top);
+    const stemBottom = stemTop + parseFloat(stem.height);
+    return {
+      titleAbove: title.bottom < node.top,
+      titleBelow: title.top > node.bottom,
+      currentAbove: tag.bottom < node.top && Math.abs(stemBottom - node.top) <= 1 && stemTop > tag.bottom,
+      currentBelow: tag.top > node.bottom && Math.abs(stemTop - node.bottom) <= 1 && stemBottom < tag.top,
+    };
+  });
+  expect(await placement()).toMatchObject({ titleAbove: true, currentBelow: true });
+  // Exercise the other parity without changing which milestone the site configures as Current.
+  await beacon.evaluate((label) => label.parentElement.nextElementSibling.after(label.parentElement));
+  expect(await placement()).toMatchObject({ titleBelow: true, currentAbove: true });
 });
 
 test('shows actual Kanban columns, filters by milestone and supports keyboard tabs', async ({ page }) => {
@@ -330,10 +372,11 @@ test('shows actual Kanban columns, filters by milestone and supports keyboard ta
   await expect(roadmap.locator('.kanban-card')).toHaveCount(2);
   await expect(roadmap.locator('#kanban-view')).not.toContainText('Build creator workflow');
   await expect(roadmap.locator('.kanban-card').first()).toHaveAttribute('href', 'https://github.com/kyaulabs/ngen/issues/12');
+  await expect(roadmap.getByRole('tablist', { name: 'Roadmap views' }).getByRole('tab')).toHaveText(['Kanban', 'Milestones']);
   await quests.focus();
-  await page.keyboard.press('End');
+  await page.keyboard.press('Home');
   await expect(kanban).toBeFocused();
-  await page.keyboard.press('ArrowLeft');
+  await page.keyboard.press('ArrowRight');
   await expect(quests).toBeFocused();
   await expect(quests).toHaveAttribute('aria-selected', 'true');
   await expect(roadmap.getByRole('tabpanel', { name: 'Milestones', exact: true })).toBeVisible();
@@ -344,13 +387,58 @@ for (const width of [1920, 390, 320]) {
     await page.setViewportSize({ width, height: width === 1920 ? 1080 : 844 });
     await load(page);
     const roadmap = page.locator('#milestones');
-    await roadmap.locator('summary').first().click();
+    const previous = roadmap.getByRole('button', { name: 'Previous milestone' });
+    const next = roadmap.getByRole('button', { name: 'Next milestone' });
+    const first = roadmap.getByRole('tab', { name: /C1.*current/i });
+    const last = roadmap.getByRole('tab', { name: /M13/ });
+    await expect(previous).toBeDisabled();
+    for (const arrow of [previous, next]) {
+      const bounds = await arrow.boundingBox();
+      expect(bounds.width).toBeGreaterThanOrEqual(44);
+      expect(bounds.height).toBeGreaterThanOrEqual(44);
+      const face = await arrow.evaluate((button) => {
+        const chrome = getComputedStyle(button, '::before');
+        const box = chrome.content === 'none' ? button.getBoundingClientRect() : chrome;
+        return [parseFloat(box.width), parseFloat(box.height)];
+      });
+      expect(face).toEqual([33, 33]);
+    }
+    await first.focus();
+    await page.keyboard.press('End');
+    await expect(last).toBeFocused();
+    await expect(last).toHaveAttribute('aria-selected', 'true');
+    await expect(next).toBeDisabled();
+    await expect(last).toHaveCSS('outline-width', '2px');
+    await expect.poll(() => last.evaluate((marker) => {
+      const bounds = marker.getBoundingClientRect(), rail = marker.closest('.milestone-rail').getBoundingClientRect();
+      return bounds.left >= rail.left - 1 && bounds.right <= rail.right + 1;
+    })).toBe(true);
+    // The outer edge is outside the visible chrome but still inside the touch target.
+    await previous.click({ position: { x: 2, y: 22 } });
+    await expect(roadmap.getByRole('tab', { name: /M12/ })).toHaveAttribute('aria-selected', 'true');
+    await roadmap.getByRole('tab', { name: /M12/ }).focus();
+    await page.keyboard.press('Home');
+    await expect(first).toBeFocused();
+    await expect(first).toHaveAttribute('aria-selected', 'true');
     await expect(roadmap.locator('.milestone-item-list a')).toHaveCount(2);
     await roadmap.locator('summary').first().focus();
     await page.keyboard.press('Tab');
     await page.keyboard.press('Shift+Tab');
     await expect(roadmap.locator('summary').first()).toHaveCSS('outline-width', '2px');
+    await next.click({ position: { x: 42, y: 22 } });
+    const title = roadmap.locator('.milestone-card h3 a');
+    await expect(title).toHaveText('M4 — Coordinates/travel/streaming');
+    expect(await title.evaluate((link) => {
+      const word = 'streaming';
+      const node = [...link.childNodes].find((child) => child.nodeType === Node.TEXT_NODE && child.textContent.includes(word));
+      const offset = node.textContent.indexOf(word);
+      const range = document.createRange();
+      range.setStart(node, offset);
+      range.setEnd(node, offset + word.length);
+      return range.getClientRects().length;
+    })).toBe(1);
     await roadmap.getByRole('tab', { name: 'Kanban', exact: true }).click();
+    await expect(roadmap.locator('.roadmap-current')).toBeHidden();
     await expect(roadmap.locator('.kanban-card')).toHaveCount(3);
     for (const card of await roadmap.locator('.kanban-card').all()) {
       const bounds = await card.boundingBox();

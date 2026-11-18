@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.\
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines
 and [Semantic Versioning](https://semver.org/spec/v2.0.0.html) for versioning adherance.
 
+## [💾](https://github.com/kyaulabs/ngen-web/releases/tag/v0.1.14) [0.1.14](https://github.com/kyaulabs/ngen-web/compare/v0.1.13...v0.1.14) - (2026-11-18)
+
+### 💄 Styling
+
+- [Roadmap] Shrink the milestone arrow faces ([677b513](https://github.com/kyaulabs/ngen-web/commit/677b51362c6e8c1e1d5117f3be969f18b88f55d5))
+
+### 🚀 Features
+
+- [Roadmap] Show milestones on a signal-stem rail ([421b558](https://github.com/kyaulabs/ngen-web/commit/421b5589e92c7c5a131adbafc4114ebca39e4fd8))
+- [Roadmap] Integrate Signal Stems milestones (#48) ([eb6a9ae](https://github.com/kyaulabs/ngen-web/commit/eb6a9ae8aa8c677dce00d25a4236c4c7a43ba15a))
+<!-- Auto-generated on 2026-11-17T19:22:28.899767169-08:00 -->
 ## [💾](https://github.com/kyaulabs/ngen-web/releases/tag/v0.1.13) [0.1.13](https://github.com/kyaulabs/ngen-web/compare/v0.1.12...v0.1.13) - (2026-11-17)
 
 ### 🐛 Bug Fixes

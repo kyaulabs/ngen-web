@@ -1,4 +1,4 @@
-// $KYAULabs: roadmap.test.js kyau@aura.kyaulabs 2026/11/16 -0800 Exp $
+// $KYAULabs: roadmap.test.js kyau@aura.kyaulabs 2026/11/17 -0800 Exp $
 import { beforeEach, expect, it, vi } from 'vitest';
 import { API, SNAPSHOT, Roadmap } from '../../app.js';
 
@@ -149,20 +149,111 @@ it('distinguishes unavailable and genuinely empty roadmap feeds', () => {
   expect(document.querySelectorAll('.kanban-card')).toHaveLength(0);
 });
 
+it('shows one expanded quest, initially C1, in the documented execution order without reordering Kanban', async () => {
+  document.body.innerHTML = '<div id="roadmap-content"></div>';
+  fetch.mockResolvedValue(response([{ number: 73, title: 'Standalone project workflow', state: 'closed' }]));
+  const plan = ['C1', 'M4', 'C2', 'M5', 'M6', 'M7', 'M8', 'M9', 'M10', 'M11', 'M12', 'M13'];
+  const milestones = ['M4', 'M5', 'M6', 'M7', 'M8', 'M9', 'M10', 'M11', 'M12', 'M13', 'C1', 'C2', 'Later']
+    .map((code, index) => ({ ...normalized, number: index + 1, title: `${code} — Controlled mission` }));
+  Roadmap.render({ milestones, project: { columns, items: [] } });
+  expect([...document.querySelectorAll('.milestone-marker')].map((tab) => tab.getAttribute('aria-label').split(' — ')[0])).toEqual([...plan, '#13']);
+  expect([...document.querySelectorAll('#roadmap-filter option')].slice(1).map((option) => option.textContent)).toEqual(milestones.map(({ title }) => title));
+  expect(document.querySelectorAll('.milestone-card')).toHaveLength(1);
+  expect(document.querySelector('.milestone-card h3').textContent).toContain('C1');
+  expect(document.querySelector('.milestone-card details').open).toBe(true);
+  await vi.waitFor(() => expect(document.querySelector('.milestone-items').textContent).toContain('Standalone project workflow'));
+  expect(new URL(fetch.mock.calls[0][0]).searchParams.get('milestone')).toBe('11');
+  expect(fetch).toHaveBeenCalledOnce();
+});
+
+it('replaces the quest when browsing without changing Current or accepting stale objectives', async () => {
+  document.body.innerHTML = '<div id="roadmap-content"></div>';
+  let finishCurrent;
+  fetch.mockImplementation((url) => new URL(url).searchParams.get('milestone') === '11'
+    ? new Promise((resolve) => { finishCurrent = resolve; })
+    : Promise.resolve(response([{ number: 12, title: 'Define coordinate frames', state: 'open' }])));
+  Roadmap.render({ milestones: [normalized, { ...normalized, number: 11, title: 'C1 — Creator SDK/toolchain' }], project: null });
+  await vi.waitFor(() => expect(finishCurrent).toBeTypeOf('function'));
+  document.querySelector('.milestone-card details').open = false;
+  document.querySelector('#milestone-marker-1').click();
+  expect(document.querySelectorAll('.milestone-card')).toHaveLength(1);
+  expect(document.querySelector('.milestone-card').dataset.milestone).toBe('1');
+  expect(document.querySelector('.milestone-card details').open).toBe(true);
+  expect(document.querySelector('.roadmap-current').textContent).toBe('Current C1');
+  expect(document.querySelector('#milestone-marker-11[aria-selected=false] .milestone-beacon').textContent.trim()).toBe('Current');
+  expect(document.querySelector('#milestone-detail').getAttribute('aria-labelledby')).toBe('milestone-marker-1');
+  finishCurrent(response([{ number: 73, title: 'Stale creator objective', state: 'open' }]));
+  await vi.waitFor(() => expect(document.querySelector('.milestone-items').textContent).toContain('Define coordinate frames'));
+  expect(document.body.textContent).not.toContain('Stale creator objective');
+  const details = document.querySelector('.milestone-card details');
+  details.open = false;
+  document.querySelector('#milestone-marker-1').click();
+  expect(details.open).toBe(true);
+  expect(fetch).toHaveBeenCalledTimes(2);
+});
+
+it('does not mark an unlisted or closed C1 as Current', () => {
+  document.body.innerHTML = '<div id="roadmap-content"></div>';
+  Roadmap.render({ milestones: [normalized], project: null });
+  expect(document.querySelector('.roadmap-current, .milestone-beacon')).toBeNull();
+  Roadmap.render({ milestones: [{ ...normalized, number: 11, title: 'C1 — Creator SDK/toolchain', state: 'closed' }], project: null });
+  expect(document.querySelector('.roadmap-current, .milestone-beacon')).toBeNull();
+  expect(document.querySelector('.milestone-card .tag').textContent).toBe('Closed');
+});
+
 it('renders escaped quests, honest zero-item progress and keyboard-operated views', () => {
   document.body.innerHTML = '<div id="roadmap-content"></div>';
   Roadmap.render({ milestones: [{ ...normalized, title: '<img src=x>', description: '<script>literal</script>', open: 0, closed: 0, state: 'closed' }], project: { columns: [], items: [] } });
   expect(document.querySelectorAll('img, script')).toHaveLength(0);
   expect(document.body.textContent).toContain('No tracked items');
   expect(document.body.textContent).not.toContain('100%');
-  const tab = document.querySelector('#milestones-tab');
-  tab.focus(); tab.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
-  expect(document.activeElement.id).toBe('kanban-tab');
-  document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true }));
-  expect(document.activeElement.id).toBe('milestones-tab');
-  document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true }));
-  document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
-  expect(document.activeElement.id).toBe('milestones-tab');
+});
+
+it('lists Kanban before Milestones but opens Milestones and applies keyboard shortcuts in visual order', () => {
+  document.body.innerHTML = '<div id="roadmap-content"></div>';
+  Roadmap.render({ milestones: [], project: { columns, items: [] } });
+  const tabs = [...document.querySelectorAll('.roadmap-tabs [role=tab]')];
+  expect(tabs.map((tab) => tab.textContent)).toEqual(['Kanban', 'Milestones']);
+  const [kanban, milestones] = tabs;
+  expect(milestones.getAttribute('aria-selected')).toBe('true');
+  expect(milestones.tabIndex).toBe(0);
+  expect(kanban.tabIndex).toBe(-1);
+  milestones.focus();
+  const press = (key) => document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+  press('Home');
+  expect(document.activeElement).toBe(kanban);
+  press('End');
+  expect(document.activeElement).toBe(milestones);
+  press('ArrowLeft');
+  expect(document.activeElement).toBe(kanban);
+  press('ArrowRight');
+  expect(document.activeElement).toBe(milestones);
+});
+
+it('moves marker focus at keyboard and arrow endpoints without wrapping or tabbing to offscreen markers', () => {
+  document.body.innerHTML = '<div id="roadmap-content"></div>';
+  Roadmap.render({ milestones: [normalized, { ...normalized, number: 11, title: 'C1 — Creator SDK/toolchain' }], project: null });
+  const first = document.querySelector('#milestone-marker-11');
+  const last = document.querySelector('#milestone-marker-1');
+  const previous = document.querySelector('.milestone-prev');
+  const next = document.querySelector('.milestone-next');
+  const press = (key) => document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+  first.focus();
+  press('ArrowLeft');
+  expect(document.activeElement).toBe(first);
+  press('End');
+  expect(document.activeElement).toBe(last);
+  expect([first.tabIndex, last.tabIndex]).toEqual([-1, 0]);
+  expect(next.disabled).toBe(true);
+  press('Tab');
+  expect(last.getAttribute('aria-selected')).toBe('true');
+  previous.focus(); previous.click();
+  expect(document.activeElement).toBe(first);
+  expect(previous.disabled).toBe(true);
+  press('ArrowRight');
+  expect(document.activeElement).toBe(last);
+  press('Home');
+  expect(document.activeElement).toBe(first);
 });
 
 it('does not map unknown or unassigned statuses to Todo, and filters actual milestone membership', () => {
@@ -181,10 +272,9 @@ it('does not map unknown or unassigned statuses to Todo, and filters actual mile
 
 it('loads objective details once and allows a failed request to be retried', async () => {
   document.body.innerHTML = '<div id="roadmap-content"></div>';
+  fetch.mockResolvedValueOnce(response(null, null, 503)).mockResolvedValueOnce(response([{ number: 12, title: '<script>literal</script>', state: 'open' }, { number: 13, title: 'Closed PR', state: 'closed', pull_request: {} }]));
   Roadmap.render({ milestones: [normalized], project: null });
   const details = document.querySelector('details');
-  fetch.mockResolvedValueOnce(response(null, null, 503)).mockResolvedValueOnce(response([{ number: 12, title: '<script>literal</script>', state: 'open' }, { number: 13, title: 'Closed PR', state: 'closed', pull_request: {} }]));
-  details.open = true;
   await vi.waitFor(() => expect(details.textContent).toContain('objectives unavailable'));
   details.open = false; await new Promise((resolve) => setTimeout(resolve, 0)); details.open = true;
   await vi.waitFor(() => expect(details.querySelectorAll('.milestone-item-list a')).toHaveLength(2));
@@ -196,9 +286,9 @@ it('loads objective details once and allows a failed request to be retried', asy
 
 it('does not claim empty objectives when known counters disagree or overwrite a newer render', async () => {
   document.body.innerHTML = '<div id="roadmap-content"></div>';
-  Roadmap.render({ milestones: [normalized], project: null });
   fetch.mockResolvedValue(response([]));
-  const details = document.querySelector('details'); details.open = true;
+  Roadmap.render({ milestones: [normalized], project: null });
+  const details = document.querySelector('details');
   await vi.waitFor(() => expect(details.textContent).toContain('objectives unavailable'));
   let finish;
   sessionStorage.clear(); fetch.mockImplementation(() => new Promise((resolve) => { finish = resolve; }));
