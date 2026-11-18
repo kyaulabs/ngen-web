@@ -1,4 +1,4 @@
-// $KYAULabs: app.js kyau@aura.kyaulabs 2026/11/16 -0800 Exp $
+// $KYAULabs: app.js kyau@aura.kyaulabs 2026/11/17 -0800 Exp $
 /* NGEN telemetry dashboard. Adapted from the KYAU Labs Prism dashboard (AGPL-3.0).
    Public GitHub data is untrusted; escape text and sanitize markdown links.
    Snapshot: data/snapshot.json. Missing record feeds remain empty. */
@@ -847,7 +847,7 @@ const API = {
       state: row.state, open: row.open_issues, closed: row.closed_issues })).sort((a, b) => a.number - b.number);
   },
 
-  /** Fetch the milestone's complete issue/PR list only when objectives are opened. */
+  /** Fetch the complete issue/PR list for the viewed milestone. */
   async fetchMilestoneItems(number) {
     if (!Number.isSafeInteger(number) || number < 1) throw new Error('Invalid milestone number');
     const rows = await this.fetchList(`/issues?state=all&milestone=${number}`);
@@ -2106,37 +2106,28 @@ const UI = {
 /* ----------------------------------------------------------------------------
  * Roadmap — public milestone quest log and read-only project views.
  * ------------------------------------------------------------------------- */
+// First appearances in the engine's execution-order.md, keyed by GitHub milestone number.
+const MILESTONE_ORDER = new Map([11, 1, 12, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((number, index) => [number, index]));
+const CURRENT_MILESTONE = 11; // C1, explicitly chosen for the website, not inferred from project status.
+
 const Roadmap = {
   render(data) {
     const root = Utils.$('#roadmap-content');
     if (!root) return;
     const milestones = data.milestones;
+    const current = milestones?.find((milestone) => milestone.number === CURRENT_MILESTONE && milestone.state === 'open');
     root.innerHTML = `
       <div class="roadmap-controls">
         <div class="pkg-tabs roadmap-tabs" role="tablist" aria-label="Roadmap views">
-          <button class="pkg-tab active" type="button" role="tab" id="milestones-tab" aria-controls="milestones-view" aria-selected="true" data-view="milestones">Milestones</button>
           <button class="pkg-tab" type="button" role="tab" id="kanban-tab" aria-controls="kanban-view" aria-selected="false" tabindex="-1" data-view="kanban">Kanban</button>
+          <button class="pkg-tab active" type="button" role="tab" id="milestones-tab" aria-controls="milestones-view" aria-selected="true" data-view="milestones">Milestones</button>
         </div>
+        ${current ? `<span class="roadmap-current">Current <strong>${this.markerLabel(current).code}</strong></span>` : ''}
         <a class="pkg-cta" href="https://github.com/orgs/${CONFIG.owner}/projects/${CONFIG.roadmapProject}/views/3" target="_blank" rel="noopener">View project ${UI.ICONS.external}</a>
       </div>
-      <div class="roadmap-view" id="milestones-view" role="tabpanel" aria-labelledby="milestones-tab">
-        ${milestones == null ? '<p class="empty-note">// milestone feed unavailable — view milestones on GitHub</p>' : !milestones.length ? '<p class="empty-note">// no GitHub milestones published</p>' : milestones.map((milestone) => {
-          const total = milestone.open + milestone.closed;
-          return `<article class="panel milestone-card" data-milestone="${milestone.number}">
-            <div class="milestone-heading">${milestone.state === 'closed' ? UI.ICONS.closed : UI.ICONS.issue}
-              <h3><a href="https://github.com/${CONFIG.owner}/${CONFIG.repo}/milestone/${milestone.number}" target="_blank" rel="noopener">${Utils.esc(milestone.title)}</a></h3>
-              <span class="tag">${milestone.state === 'closed' ? 'Closed' : 'Open'}</span>
-            </div>
-            <div class="milestone-progress-label"><span>${total ? `${milestone.closed} of ${total} items closed` : 'No tracked items'}</span>${total ? `<span>${Math.round(milestone.closed / total * 100)}%</span>` : ''}</div>
-            <progress value="${milestone.closed}" max="${Math.max(1, total)}" aria-label="${Utils.esc(milestone.title)}: ${milestone.closed} of ${total} items closed"></progress>
-            <details class="milestone-objectives"><summary>Objectives ${UI.ICONS.chevron}</summary>
-              ${milestone.description ? `<p class="milestone-description">${Utils.esc(milestone.description)}</p>` : ''}
-              <div class="milestone-items" aria-live="polite"><p class="empty-note">Open to load objectives.</p></div>
-            </details>
-          </article>`;
-        }).join('')}
-      </div>
+      <div class="roadmap-view" id="milestones-view" role="tabpanel" aria-labelledby="milestones-tab"></div>
       <div class="roadmap-view" id="kanban-view" role="tabpanel" aria-labelledby="kanban-tab" hidden></div>`;
+    this.renderMilestones(root.querySelector('#milestones-view'), milestones, current);
     this.renderBoard(root, data);
     root.querySelectorAll('[data-view]').forEach((tab) => tab.addEventListener('click', () => this.selectView(root, tab.dataset.view)));
     root.querySelector('.roadmap-tabs').addEventListener('keydown', (event) => {
@@ -2150,15 +2141,102 @@ const Roadmap = {
       this.selectView(root, next.dataset.view);
       next.focus();
     });
-    root.querySelectorAll('.milestone-card').forEach((card) => {
-      const milestone = milestones.find((entry) => entry.number === Number(card.dataset.milestone));
-      const details = card.querySelector('details');
-      details.addEventListener('toggle', () => { this.loadObjectives(details, milestone); });
+  },
+
+  markerLabel(milestone) {
+    const match = /^([CM]\d+)\s+[—–-]\s+(.+)$/.exec(milestone.title.trim());
+    return match ? { code: match[1], title: match[2] } : { code: `#${milestone.number}`, title: milestone.title };
+  },
+
+  wrapTitle(title) {
+    return Utils.esc(title).replace(/\/(?=\S)/g, '/<wbr>');
+  },
+
+  renderMilestones(pane, milestones, current) {
+    if (!milestones?.length) {
+      pane.innerHTML = `<p class="empty-note">${milestones == null ? '// milestone feed unavailable — view milestones on GitHub' : '// no GitHub milestones published'}</p>`;
+      return;
+    }
+    const rank = (milestone) => MILESTONE_ORDER.get(milestone.number) ?? MILESTONE_ORDER.size;
+    const ordered = milestones.toSorted((a, b) => rank(a) - rank(b) || a.number - b.number);
+    pane.innerHTML = `<div class="milestone-carousel">
+      <button class="milestone-arrow milestone-prev" type="button" aria-label="Previous milestone">${UI.ICONS.chevron}</button>
+      <div class="milestone-rail"><div class="milestone-track" role="tablist" aria-label="Milestones in execution order">
+        ${ordered.map((milestone) => {
+          const { code, title } = this.markerLabel(milestone);
+          return `<button class="milestone-marker" id="milestone-marker-${milestone.number}" type="button" role="tab" aria-controls="milestone-detail" aria-selected="false" tabindex="-1" aria-label="${code} — ${Utils.esc(title)}${milestone === current ? ', current' : ''}">
+            <span class="milestone-label"><strong>${code}</strong><span>${this.wrapTitle(title)}</span></span>
+            <span class="milestone-node" aria-hidden="true"></span>
+            ${milestone === current ? `<span class="milestone-beacon" aria-hidden="true">${UI.ICONS.profile} Current</span>` : ''}
+          </button>`;
+        }).join('')}
+      </div></div>
+      <button class="milestone-arrow milestone-next" type="button" aria-label="Next milestone">${UI.ICONS.chevron}</button>
+    </div>
+    <div id="milestone-detail" role="tabpanel" tabindex="0"></div>`;
+    const detail = pane.querySelector('#milestone-detail');
+    const markers = [...pane.querySelectorAll('.milestone-marker')];
+    const previous = pane.querySelector('.milestone-prev');
+    const next = pane.querySelector('.milestone-next');
+    const rail = pane.querySelector('.milestone-rail');
+    let selected = -1;
+    const select = (index, focus = false) => {
+      const prior = markers[selected];
+      const marker = markers[index];
+      if (index !== selected) {
+        if (prior) {
+          prior.tabIndex = -1;
+          prior.setAttribute('aria-selected', 'false');
+        }
+        selected = index;
+        marker.tabIndex = 0;
+        marker.setAttribute('aria-selected', 'true');
+        detail.setAttribute('aria-labelledby', marker.id);
+        this.renderMilestoneCard(detail, ordered[index]);
+      } else {
+        detail.querySelector('details').open = true;
+      }
+      const focused = document.activeElement;
+      previous.disabled = index === 0;
+      next.disabled = index === markers.length - 1;
+      if (focus || (focused === previous && previous.disabled) || (focused === next && next.disabled)) marker.focus({ preventScroll: true });
+      if (prior) rail.scrollTo?.({ left: marker.offsetLeft + (marker.offsetWidth - rail.clientWidth) / 2,
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+    };
+    markers.forEach((marker, index) => marker.addEventListener('click', () => select(index)));
+    rail.addEventListener('keydown', (event) => {
+      if (event.target !== markers[selected] || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+      event.preventDefault();
+      select(event.key === 'Home' ? 0 : event.key === 'End' ? markers.length - 1
+        : Math.max(0, Math.min(markers.length - 1, selected + (event.key === 'ArrowRight' ? 1 : -1))), true);
     });
+    previous.addEventListener('click', () => select(selected - 1));
+    next.addEventListener('click', () => select(selected + 1));
+    select(Math.max(0, ordered.indexOf(current)));
+  },
+
+  renderMilestoneCard(pane, milestone) {
+    const total = milestone.open + milestone.closed;
+    pane.innerHTML = `<article class="panel milestone-card" data-milestone="${milestone.number}">
+      <div class="milestone-heading">${milestone.state === 'closed' ? UI.ICONS.closed : UI.ICONS.issue}
+        <h3><a href="https://github.com/${CONFIG.owner}/${CONFIG.repo}/milestone/${milestone.number}" target="_blank" rel="noopener">${this.wrapTitle(milestone.title)}</a></h3>
+        <span class="tag">${milestone.state === 'closed' ? 'Closed' : 'Open'}</span>
+      </div>
+      <div class="milestone-progress-label"><span>${total ? `${milestone.closed} of ${total} items closed` : 'No tracked items'}</span>${total ? `<span>${Math.round(milestone.closed / total * 100)}%</span>` : ''}</div>
+      <progress value="${milestone.closed}" max="${Math.max(1, total)}" aria-label="${Utils.esc(milestone.title)}: ${milestone.closed} of ${total} items closed"></progress>
+      <details class="milestone-objectives" open><summary>Objectives ${UI.ICONS.chevron}</summary>
+        ${milestone.description ? `<p class="milestone-description">${Utils.esc(milestone.description)}</p>` : ''}
+        <div class="milestone-items" aria-live="polite"></div>
+      </details>
+    </article>`;
+    const details = pane.querySelector('details');
+    details.addEventListener('toggle', () => { this.loadObjectives(details, milestone); });
   },
 
   selectView(root, view) {
     if (!['milestones', 'kanban'].includes(view)) return;
+    const current = root.querySelector('.roadmap-current');
+    if (current) current.hidden = view !== 'milestones';
     root.querySelectorAll('[data-view]').forEach((tab) => {
       const selected = tab.dataset.view === view;
       tab.classList.toggle('active', selected);
@@ -2204,7 +2282,7 @@ const Roadmap = {
   },
 
   async loadObjectives(details, milestone) {
-    if (!details.open || details.dataset.loaded || details.dataset.loading) return;
+    if (!details.isConnected || !details.open || details.dataset.loaded || details.dataset.loading) return;
     details.dataset.loading = 'true';
     const list = details.querySelector('.milestone-items');
     list.innerHTML = '<p class="empty-note">// loading milestone objectives…</p>';
