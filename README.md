@@ -76,7 +76,7 @@ assets/
 brand/
 ```
 
-Node.js/npm are needed during deployment to build assets, not to serve requests. No always-running Node.js process, PHP application, or database is required. A production origin has not been configured in this repository; absolute Open Graph image and page URLs should be set when deploying.
+Node.js/npm are needed during deployment to build assets, not to serve requests. No always-running Node.js process, PHP application, or database is required. The homepage’s Open Graph metadata points to the dark brand image on `https://ngen.kyaulabs.com/`.
 
 ## Documentation
 

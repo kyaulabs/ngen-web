@@ -795,6 +795,28 @@ test('renders both Prism-derived brand palettes with readable action labels', as
   }
 });
 
+test('exposes the branded Open Graph image to crawlers without JavaScript', async ({ browser, baseURL }) => {
+  const context = await browser.newContext({ javaScriptEnabled: false, baseURL });
+  try {
+    const page = await context.newPage();
+    await page.goto('/');
+    const meta = await page.locator('head meta[property^="og:"]').evaluateAll((tags) => Object.fromEntries(tags.map((tag) => [tag.getAttribute('property'), tag.content])));
+    expect(meta['og:image']).toBe('https://ngen.kyaulabs.com/brand/social/ngen-og-dark.png');
+    expect(meta['og:url']).toBe('https://ngen.kyaulabs.com/');
+    expect(meta['og:image:alt']).toMatch(/NGEN.*orbital schematic/);
+    const image = await context.request.get(new URL(meta['og:image']).pathname);
+    expect(image.status()).toBe(200);
+    expect(image.headers()['content-type']).toBe('image/png');
+    expect(meta['og:image:type']).toBe(image.headers()['content-type']);
+    const png = await image.body();
+    expect(png).toEqual(await readFile('brand/social/ngen-og-dark.png'));
+    expect(meta['og:image:width']).toBe(String(png.readUInt32BE(16)));
+    expect(meta['og:image:height']).toBe(String(png.readUInt32BE(20)));
+  } finally {
+    await context.close();
+  }
+});
+
 test('keeps the orbital fallback label-free and transparent without JavaScript', async ({ browser }) => {
   const context = await browser.newContext({ javaScriptEnabled: false, colorScheme: 'light', viewport: { width: 390, height: 844 } });
   try {
