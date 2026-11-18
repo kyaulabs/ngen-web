@@ -1,4 +1,4 @@
-// $KYAULabs: dashboard.spec.mjs kyau@aura.kyaulabs 2026/11/17 -0800 Exp $
+// $KYAULabs: dashboard.spec.mjs kyau@aura.kyaulabs 2026/11/18 -0800 Exp $
 import { readFile } from 'node:fs/promises';
 import { test, expect } from '@playwright/test';
 import { controlNetwork, releaseCode } from '../network.mjs';
@@ -319,8 +319,15 @@ test('loads objectives only for viewed milestones and preserves real item states
   await expect(card.locator('.milestone-item-list a')).toHaveCount(2);
   await expect(card.locator('.milestone-item-list')).toContainText('Define coordinate frames');
   await expect(card.locator('.milestone-item-list')).toContainText('Verify trajectory bounds');
-  await expect(card.locator('.milestone-item-list a').first()).toHaveAttribute('href', 'https://github.com/kyaulabs/ngen/issues/12');
-  await expect(card.locator('.milestone-item-list a').last()).toContainText('Closed');
+  const openItem = card.getByRole('link', { name: /Define coordinate frames.*Open/ });
+  const closedItem = card.getByRole('link', { name: /Verify trajectory bounds.*Closed/ });
+  await expect(openItem).toHaveAttribute('href', 'https://github.com/kyaulabs/ngen/issues/12');
+  await expect(openItem.locator('svg use')).toHaveAttribute('href', /#circle-dot$/);
+  await expect(openItem.locator('svg')).toHaveCSS('color', 'rgb(164, 181, 207)');
+  await expect(closedItem.locator('svg use')).toHaveAttribute('href', /#check$/);
+  await expect(closedItem.locator('svg')).toHaveCSS('color', 'rgb(52, 211, 153)');
+  await closedItem.hover();
+  await expect(closedItem.locator('svg')).toHaveCSS('color', 'rgb(52, 211, 153)');
   await card.locator('summary').click();
   await card.locator('summary').click();
   expect(requests).toEqual(['11', '1']);
