@@ -15,8 +15,10 @@ const history = Array.from({ length: 163 }, (_, index) => ({
   commit: { committer: { date: new Date(Date.UTC(2026, 10, 2 + index % 16, 10)).toISOString() } },
 }));
 const milestones = [
-  { number: 1, title: 'M4 — Controlled mission', description: 'Public mission objectives.', state: 'open', open_issues: 1, closed_issues: 1 },
-  { number: 2, title: 'C1 — Creator tools', description: 'An independent creator workstream.', state: 'open', open_issues: 1, closed_issues: 0 },
+  { number: 1, title: 'M4 — Coordinates/travel/streaming', description: 'Canonical coordinates, origin transfer, warp travel and connected-system streaming.', state: 'open', open_issues: 1, closed_issues: 1 },
+  ...[[2, 'M5 — Miniature offline universe'], [3, 'M6 — Authoritative multiplayer'], [4, 'M7 — Persistence/economy'], [5, 'M8 — Security law/sovereignty'], [6, 'M9 — Fleet scale/time dilation'], [7, 'M10 — Fenced regional transfer'], [8, 'M11 — Optional graphics'], [9, 'M12 — Optional settlement'], [10, 'M13 — Production hardening/release'], [12, 'C2 — Local creator MCP']]
+    .map(([number, title]) => ({ number, title, state: 'open', open_issues: 0, closed_issues: 0 })),
+  { number: 11, title: 'C1 — Creator SDK/toolchain', description: 'A reusable engine boundary, standalone projects, scene authoring and an independent creator workflow.', state: 'open', open_issues: 1, closed_issues: 1 },
 ];
 const issue = { number: 12, title: 'Review orbital navigation', state: 'open', html_url: `${base}/issues/12`, user: { login: 'kyau', html_url: 'https://github.com/kyau' }, labels: [{ name: 'feature', color: '63ddf8' }], created_at: '2026-11-01T00:00:00Z', updated_at: '2026-11-12T00:00:00Z', body: '## Summary\nControlled browser fixture.\n## Verification\n<script>window.injected = true</script>\n[javascript](javascript:alert(1))' };
 
@@ -43,7 +45,7 @@ export async function controlNetwork(page, offline = false, reviewState = 'dark'
     if (url.pathname === '/orgs/kyaulabs/projectsV2/4/fields') data = [{ id: 10, name: 'Status', data_type: 'single_select', options: [{ id: 'todo', name: { raw: 'Todo' } }, { id: 'doing', name: { raw: 'In Progress' } }, { id: 'done', name: { raw: 'Done' } }] }];
     if (url.pathname === '/orgs/kyaulabs/projectsV2/4/items') data = [
       { number: 12, title: 'Define coordinate frames', state: 'open', status: 'todo', milestone: 1 },
-      { number: 15, title: 'Build creator workflow', state: 'open', status: 'doing', milestone: 2 },
+      { number: 15, title: 'Build creator workflow', state: 'open', status: 'doing', milestone: 11 },
       { number: 14, title: 'Verify trajectory bounds', state: 'closed', status: 'done', milestone: 1 },
     ].map((row) => ({ id: row.number, content_type: 'Issue', fields: [{ id: 10, value: { id: row.status } }], content: { number: row.number, title: row.title, state: row.state, url: `https://api.github.com/repos/kyaulabs/ngen/issues/${row.number}`, milestone: { number: row.milestone } } }));
     if (url.pathname.endsWith('/languages')) data = { 'C++': 180000, CMake: 18000, Python: 8000 };
@@ -69,7 +71,9 @@ export async function controlNetwork(page, offline = false, reviewState = 'dark'
     if (url.pathname.endsWith('/issues')) data = [{ ...issue, state: url.searchParams.get('state') }];
     if (url.pathname.endsWith('/issues') && url.searchParams.has('milestone')) data = url.searchParams.get('milestone') === '1'
       ? [{ ...issue, title: 'Define coordinate frames', state: 'open' }, { ...issue, number: 14, title: 'Verify trajectory bounds', state: 'closed' }]
-      : [{ ...issue, number: 15, title: 'Build creator workflow', state: 'open' }];
+      : url.searchParams.get('milestone') === '11'
+        ? [{ ...issue, number: 15, title: 'Build creator workflow', state: 'open' }, { ...issue, number: 73, title: 'Create a standalone project workflow', state: 'closed' }]
+        : [];
     if (url.pathname.endsWith('/pulls')) data = [{ ...issue, number: 13, state: url.searchParams.get('state'), html_url: `${base}/pull/13`, head: { ref: 'feature' }, base: { ref: 'develop' } }];
     if (reviewState === 'roadmap-empty-dark' && (url.pathname.endsWith('/milestones') || url.pathname === '/orgs/kyaulabs/projectsV2/4/items')) data = [];
     if (url.pathname === '/search/issues') data = { total_count: 1 };

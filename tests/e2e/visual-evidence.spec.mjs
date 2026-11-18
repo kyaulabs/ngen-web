@@ -37,10 +37,14 @@ test('rejects component evidence obscured by the fixed ticker', async ({ page })
   await controlNetwork(page);
   await page.goto('/');
   await expect(page.locator('body')).toHaveClass(/loaded/);
-  const selector = '#milestones .roadmap-panel';
-  await page.locator(selector).scrollIntoViewIfNeeded();
-  await page.locator('.milestone-card:first-child summary').click();
+  const selector = '#milestones .milestone-card';
   await page.locator('.milestone-item-list').waitFor();
+  await page.locator(selector).scrollIntoViewIfNeeded();
+  await page.locator('.ticker.docked').waitFor();
+  await page.locator(selector).evaluate((panel) => {
+    const ticker = document.querySelector('.ticker.docked').getBoundingClientRect();
+    window.scrollBy({ top: panel.getBoundingClientRect().bottom - (ticker.top + ticker.bottom) / 2, behavior: 'instant' });
+  });
   const directory = await mkdtemp(join(tmpdir(), 'ngen-evidence-'));
   try {
     await expect(publishVisualReviewEvidence(page, {
