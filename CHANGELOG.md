@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.\
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines
 and [Semantic Versioning](https://semver.org/spec/v2.0.0.html) for versioning adherance.
 
+## [💾](https://github.com/kyaulabs/ngen-web/releases/tag/v0.1.17) [0.1.17](https://github.com/kyaulabs/ngen-web/compare/v0.1.16...v0.1.17) - (2026-11-18)
+
+### 🐛 Bug Fixes
+
+- [Roadmap] Sort milestone objectives alphabetically ([654fa3f](https://github.com/kyaulabs/ngen-web/commit/654fa3fb880e1c1c35ed3ea1013bd3afa8d61ef0))
+- [Roadmap] Integrate alphabetical objective order (#57) ([ad6e559](https://github.com/kyaulabs/ngen-web/commit/ad6e559e9efee225ff267671d87870ddd95bd038))
+<!-- Auto-generated on 2026-11-18T15:08:10.208429381-08:00 -->
 ## [💾](https://github.com/kyaulabs/ngen-web/releases/tag/v0.1.16) [0.1.16](https://github.com/kyaulabs/ngen-web/compare/v0.1.15...v0.1.16) - (2026-11-18)
 
 ### 🐛 Bug Fixes
