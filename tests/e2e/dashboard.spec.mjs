@@ -396,6 +396,12 @@ for (const width of [1920, 390, 320]) {
       const bounds = await arrow.boundingBox();
       expect(bounds.width).toBeGreaterThanOrEqual(44);
       expect(bounds.height).toBeGreaterThanOrEqual(44);
+      const face = await arrow.evaluate((button) => {
+        const chrome = getComputedStyle(button, '::before');
+        const box = chrome.content === 'none' ? button.getBoundingClientRect() : chrome;
+        return [parseFloat(box.width), parseFloat(box.height)];
+      });
+      expect(face).toEqual([33, 33]);
     }
     await first.focus();
     await page.keyboard.press('End');
@@ -407,7 +413,8 @@ for (const width of [1920, 390, 320]) {
       const bounds = marker.getBoundingClientRect(), rail = marker.closest('.milestone-rail').getBoundingClientRect();
       return bounds.left >= rail.left - 1 && bounds.right <= rail.right + 1;
     })).toBe(true);
-    await previous.click();
+    // The outer edge is outside the visible chrome but still inside the touch target.
+    await previous.click({ position: { x: 2, y: 22 } });
     await expect(roadmap.getByRole('tab', { name: /M12/ })).toHaveAttribute('aria-selected', 'true');
     await roadmap.getByRole('tab', { name: /M12/ }).focus();
     await page.keyboard.press('Home');
@@ -418,7 +425,7 @@ for (const width of [1920, 390, 320]) {
     await page.keyboard.press('Tab');
     await page.keyboard.press('Shift+Tab');
     await expect(roadmap.locator('summary').first()).toHaveCSS('outline-width', '2px');
-    await next.click();
+    await next.click({ position: { x: 42, y: 22 } });
     const title = roadmap.locator('.milestone-card h3 a');
     await expect(title).toHaveText('M4 — Coordinates/travel/streaming');
     expect(await title.evaluate((link) => {
