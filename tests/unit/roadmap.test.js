@@ -1,4 +1,4 @@
-// $KYAULabs: roadmap.test.js kyau@aura.kyaulabs 2026/11/17 -0800 Exp $
+// $KYAULabs: roadmap.test.js kyau@aura.kyaulabs 2026/11/18 -0800 Exp $
 import { beforeEach, expect, it, vi } from 'vitest';
 import { API, SNAPSHOT, Roadmap } from '../../app.js';
 
@@ -134,6 +134,18 @@ it('normalizes issue and PR objectives without inventing records', async () => {
   await expect(API.fetchMilestoneItems(0)).rejects.toThrow('Invalid milestone number');
   sessionStorage.clear(); fetch.mockResolvedValue(response([{}]));
   await expect(API.fetchMilestoneItems(1)).rejects.toThrow('Invalid milestone objective');
+});
+
+it('orders milestone steps by their title prefixes across pages, not by issue number or state', async () => {
+  const rows = [['F', 76], ['E', 75], ['C', 74], ['B', 73], ['A', 72], ['D', 55]].map(([step, number]) => ({
+    number, title: `C1-${step}: Objective ${step}`, state: 'ABC'.includes(step) ? 'closed' : 'open',
+  }));
+  fetch.mockResolvedValueOnce(response(rows.slice(0, 3), '<https://api.github.com/repos/kyaulabs/ngen/issues?state=all&milestone=11&per_page=100&page=2>; rel="next"'))
+    .mockResolvedValueOnce(response(rows.slice(3)));
+  const objectives = await API.fetchMilestoneItems(11);
+  expect(objectives.map(({ number, state }) => [number, state])).toEqual([
+    [72, 'closed'], [73, 'closed'], [74, 'closed'], [55, 'open'], [75, 'open'], [76, 'open'],
+  ]);
 });
 
 it('distinguishes unavailable and genuinely empty roadmap feeds', () => {

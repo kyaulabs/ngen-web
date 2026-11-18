@@ -307,7 +307,9 @@ test('loads objectives only for viewed milestones and preserves real item states
   });
   await load(page);
   const roadmap = page.locator('#milestones');
-  await expect(roadmap.locator('.milestone-item-list')).toContainText('Build creator workflow');
+  await expect(roadmap.locator('.milestone-item-title')).toHaveText([
+    'C1-B: Create a standalone project workflow', 'C1-D: Build creator workflow',
+  ]);
   expect(requests).toEqual(['11']);
   await roadmap.locator('summary').click();
   await roadmap.getByRole('button', { name: 'Next milestone' }).click();
@@ -316,9 +318,9 @@ test('loads objectives only for viewed milestones and preserves real item states
   await expect(roadmap.locator('.roadmap-current')).toHaveText('Current C1');
   await expect(roadmap.getByRole('tab', { name: /C1.*current/i })).toHaveAttribute('aria-selected', 'false');
   await expect(roadmap).not.toContainText(/current focus|viewing |return to current|creator track|engine track|· preview/i);
-  await expect(card.locator('.milestone-item-list a')).toHaveCount(2);
-  await expect(card.locator('.milestone-item-list')).toContainText('Define coordinate frames');
-  await expect(card.locator('.milestone-item-list')).toContainText('Verify trajectory bounds');
+  await expect(card.locator('.milestone-item-title')).toHaveText([
+    'M4-B: Define coordinate frames', 'M4-D: Verify trajectory bounds',
+  ]);
   const openItem = card.getByRole('link', { name: /Define coordinate frames.*Open/ });
   const closedItem = card.getByRole('link', { name: /Verify trajectory bounds.*Closed/ });
   await expect(openItem).toHaveAttribute('href', 'https://github.com/kyaulabs/ngen/issues/12');
