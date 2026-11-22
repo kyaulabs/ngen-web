@@ -362,6 +362,7 @@ test('shows keyboard-accessible handoff links at the M6 gates on narrow screens'
     await expect.poll(() => icon.locator('use').evaluate((element) => element.getBBox().width)).toBeGreaterThan(0);
     expect(await icon.evaluate((element) => element.closest('a')?.href)).toBe(`https://github.com/kyaulabs/ngen/issues/${id}`);
     const bounds = await icon.boundingBox();
+    expect(bounds.height).toBeGreaterThanOrEqual(16);
     expect(Math.abs(bounds.x + bounds.width - statusBounds.x - statusBounds.width)).toBeLessThanOrEqual(1);
   }
   await card.locator('summary').focus();
