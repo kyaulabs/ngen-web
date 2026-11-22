@@ -232,7 +232,7 @@ it.each([
   const handoffs = [...document.querySelectorAll('.milestone-handoff a')];
   expect(handoffs.map((link) => link.getAttribute('href'))).toEqual(gates.map((id) => `https://github.com/kyaulabs/ngen/issues/${id}`));
   expect(handoffs.map((link) => link.querySelector('.milestone-handoff-label').textContent)).toEqual(gates.map(() => 'HANDOFF'));
-  expect(handoffs.map((link) => link.querySelector('.milestone-handoff-link').textContent.trim())).toEqual(gates.map((id) => `#${id}`));
+  expect(handoffs.map((link) => link.querySelector('.milestone-item-number').textContent)).toEqual(gates.map((id) => `#${id}`));
   expect(handoffs.map((link) => link.querySelector('.milestone-item-state')?.textContent)).toEqual(gates.map((id) => id === 132 ? 'CLOSED' : undefined));
   expect(document.querySelectorAll('.milestone-marker')).toHaveLength(1);
   expect(document.querySelector('.milestone-card progress').max).toBe(responseOrder.length + 1);

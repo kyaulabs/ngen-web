@@ -1562,7 +1562,7 @@ const UI = {
     users: 'users', code: 'code', calendar: 'calendar', branch: 'code-branch', shield: 'shield-halved',
     chevron: 'chevron-down', check: 'check', close: 'xmark', external: 'arrow-up-right-from-square',
     copy: 'copy', pause: 'pause', play: 'play', profile: 'angles-right', download: 'download',
-    closed: 'circle-check', merged: 'code-merge', github: 'github',
+    closed: 'circle-check', merged: 'code-merge', github: 'github', document: 'file-lines',
   }).map(([key, name]) => [key, `<svg class="fa-icon${key === 'chevron' ? ' release-chevron' : ''}" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="vendor/fontawesome-icons.svg#${name}" width="24" height="24"></use></svg>`])),
 
 
@@ -2322,12 +2322,11 @@ const Roadmap = {
         const rowClass = row.handoff ? ' class="milestone-handoff"' : closed ? ' class="milestone-item-closed"' : '';
         const icon = row.handoff ? '<span class="milestone-handoff-diamond" aria-hidden="true"></span>' : closed ? UI.ICONS.check : UI.ICONS.issue;
         const label = row.handoff ? '<span class="milestone-handoff-label">HANDOFF</span>' : '';
-        const number = `#${row.number}`;
         const state = closed ? '<span class="milestone-item-state">CLOSED</span>' : '';
         return `<li${rowClass}><a href="https://github.com/${CONFIG.owner}/${CONFIG.repo}/${row.kind === 'pr' ? 'pull' : 'issues'}/${row.number}" target="_blank" rel="noopener"${closed ? '' : ' aria-description="Open"'}>
-          ${icon}${row.handoff ? '' : `<span class="milestone-item-number">${number}</span>`}
+          ${icon}<span class="milestone-item-number">#${row.number}</span>
           <span class="milestone-item-title">${label} ${Utils.esc(row.title)}</span>
-          ${row.handoff ? `<span class="milestone-handoff-end"><span class="milestone-handoff-link">${number} ${UI.ICONS.external}</span>${state}</span>` : state}
+          ${row.handoff ? `<span class="milestone-handoff-end">${UI.ICONS.document}${state}</span>` : state}
         </a></li>`;
       }).join('')}</ul>` : '<p class="empty-note">// no milestone objectives</p>';
       details.dataset.loaded = 'true';

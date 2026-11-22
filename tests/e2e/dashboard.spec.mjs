@@ -352,9 +352,16 @@ test('shows keyboard-accessible handoff links at the M6 gates on narrow screens'
   await expect(closedLabel).toHaveText('CLOSED');
   const statusBounds = await closedLabel.boundingBox();
   for (const [row, id] of [[links.first(), 131], [links.last(), 132]]) {
-    const issueLink = row.getByText(`#${id}`, { exact: true });
-    expect(await issueLink.evaluate((element) => element.closest('a')?.href)).toBe(`https://github.com/kyaulabs/ngen/issues/${id}`);
-    const bounds = await issueLink.boundingBox();
+    const issueNumber = row.getByText(`#${id}`, { exact: true });
+    const title = row.locator('.milestone-item-title');
+    expect((await issueNumber.boundingBox()).x).toBeLessThan((await title.boundingBox()).x);
+    const end = row.locator('.milestone-handoff-end');
+    const icon = end.locator('svg');
+    await expect(end).toHaveText('');
+    await expect(icon.locator('use')).toHaveAttribute('href', 'vendor/fontawesome-icons.svg#file-lines');
+    await expect.poll(() => icon.locator('use').evaluate((element) => element.getBBox().width)).toBeGreaterThan(0);
+    expect(await icon.evaluate((element) => element.closest('a')?.href)).toBe(`https://github.com/kyaulabs/ngen/issues/${id}`);
+    const bounds = await icon.boundingBox();
     expect(Math.abs(bounds.x + bounds.width - statusBounds.x - statusBounds.width)).toBeLessThanOrEqual(1);
   }
   await card.locator('summary').focus();
