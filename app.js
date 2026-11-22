@@ -1,4 +1,4 @@
-// $KYAULabs: app.js kyau@aura.kyaulabs 2026/11/18 -0800 Exp $
+// $KYAULabs: app.js kyau@aura.kyaulabs 2026/11/22 -0800 Exp $
 /* NGEN telemetry dashboard. Adapted from the KYAU Labs Prism dashboard (AGPL-3.0).
    Public GitHub data is untrusted; escape text and sanitize markdown links.
    Snapshot: data/snapshot.json. Missing record feeds remain empty. */
@@ -2110,6 +2110,15 @@ const UI = {
 const MILESTONE_ORDER = new Map([11, 1, 12, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((number, index) => [number, index]));
 const CURRENT_MILESTONE = 11; // C1, explicitly chosen for the website, not inferred from project status.
 
+// Space MMO handoff gates in the engine's execution-order.md (PR #136).
+// Only show gates whose GitHub issues are in the viewed milestone's live feed.
+const MILESTONE_HANDOFFS = new Map([
+  [3, [{ number: 131, step: '22a', atStart: true }, { number: 132, step: '28a' }]],
+  [4, [{ number: 133, step: '35a' }]],
+  [9, [{ number: 134, step: '57a', after: 56, before: 57 }]],
+  [10, [{ number: 135, step: '66a', after: 65, before: 66 }]],
+]);
+
 const Roadmap = {
   render(data) {
     const root = Utils.$('#roadmap-content');
@@ -2217,6 +2226,9 @@ const Roadmap = {
 
   renderMilestoneCard(pane, milestone) {
     const total = milestone.open + milestone.closed;
+    const description = (milestone.description || '').trim()
+      .replace(/^[CM]\d+\s*[-–—]\s+/, '')
+      .replace(/(?:^|\s+)Source:\s*https:\/\/github\.com\/\S+\s*$/i, '');
     pane.innerHTML = `<article class="panel milestone-card" data-milestone="${milestone.number}">
       <div class="milestone-heading">${milestone.state === 'closed' ? UI.ICONS.closed : UI.ICONS.issue}
         <h3><a href="https://github.com/${CONFIG.owner}/${CONFIG.repo}/milestone/${milestone.number}" target="_blank" rel="noopener">${this.wrapTitle(milestone.title)}</a></h3>
@@ -2225,7 +2237,7 @@ const Roadmap = {
       <div class="milestone-progress-label"><span>${total ? `${milestone.closed} of ${total} items closed` : 'No tracked items'}</span>${total ? `<span>${Math.round(milestone.closed / total * 100)}%</span>` : ''}</div>
       <progress value="${milestone.closed}" max="${Math.max(1, total)}" aria-label="${Utils.esc(milestone.title)}: ${milestone.closed} of ${total} items closed"></progress>
       <details class="milestone-objectives" open><summary>Objectives ${UI.ICONS.chevron}</summary>
-        ${milestone.description ? `<p class="milestone-description">${Utils.esc(milestone.description)}</p>` : ''}
+        ${description ? `<p class="milestone-description">${Utils.esc(description)}</p>` : ''}
         <div class="milestone-items" aria-live="polite"></div>
       </details>
     </article>`;
@@ -2281,6 +2293,21 @@ const Roadmap = {
     </section>`).join('') : '<p class="empty-note">// no project status columns configured</p>';
   },
 
+  orderObjectives(rows, milestoneNumber) {
+    const gates = MILESTONE_HANDOFFS.get(milestoneNumber);
+    if (!gates) return rows;
+    const ordered = rows.filter((row) => !gates.some((gate) => gate.number === row.number));
+    for (const { number, step, atStart, after, before } of gates) {
+      const row = rows.find((item) => item.number === number);
+      if (!row) continue;
+      const prior = ordered.findIndex((item) => item.number === after);
+      const next = ordered.findIndex((item) => item.number === before);
+      const index = atStart ? 0 : prior >= 0 ? prior + 1 : next >= 0 ? next : ordered.length;
+      ordered.splice(index, 0, { ...row, handoff: step });
+    }
+    return ordered;
+  },
+
   async loadObjectives(details, milestone) {
     if (!details.isConnected || !details.open || details.dataset.loaded || details.dataset.loading) return;
     details.dataset.loading = 'true';
@@ -2290,10 +2317,15 @@ const Roadmap = {
       const rows = await API.fetchMilestoneItems(milestone.number);
       if (!details.isConnected) return;
       if (!rows.length && milestone.open + milestone.closed > 0) throw new Error('Objective feed disagrees with counters');
-      list.innerHTML = rows.length ? `<ul class="milestone-item-list">${rows.map((row) => {
+      list.innerHTML = rows.length ? `<ul class="milestone-item-list">${this.orderObjectives(rows, milestone.number).map((row) => {
         const closed = row.state === 'closed';
-        return `<li${closed ? ' class="milestone-item-closed"' : ''}><a href="https://github.com/${CONFIG.owner}/${CONFIG.repo}/${row.kind === 'pr' ? 'pull' : 'issues'}/${row.number}" target="_blank" rel="noopener">
-          ${closed ? UI.ICONS.check : UI.ICONS.issue}<span class="milestone-item-number">#${row.number}</span><span class="milestone-item-title">${Utils.esc(row.title)}</span><span class="milestone-item-state">${closed ? 'Closed' : 'Open'}</span>
+        const rowClass = row.handoff ? ' class="milestone-handoff"' : closed ? ' class="milestone-item-closed"' : '';
+        const icon = row.handoff ? '<span class="milestone-handoff-diamond" aria-hidden="true"></span>' : closed ? UI.ICONS.check : UI.ICONS.issue;
+        const label = row.handoff ? `<span class="milestone-handoff-label">Handoff · ${row.handoff}</span>` : '';
+        return `<li${rowClass}><a href="https://github.com/${CONFIG.owner}/${CONFIG.repo}/${row.kind === 'pr' ? 'pull' : 'issues'}/${row.number}" target="_blank" rel="noopener"${closed ? '' : ' aria-description="Open"'}>
+          ${icon}<span class="milestone-item-number">#${row.number}</span>
+          <span class="milestone-item-title">${label} ${Utils.esc(row.title)}</span>
+          ${closed ? '<span class="milestone-item-state">CLOSED</span>' : ''}
         </a></li>`;
       }).join('')}</ul>` : '<p class="empty-note">// no milestone objectives</p>';
       details.dataset.loaded = 'true';

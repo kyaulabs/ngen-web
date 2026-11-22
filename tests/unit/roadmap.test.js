@@ -1,4 +1,4 @@
-// $KYAULabs: roadmap.test.js kyau@aura.kyaulabs 2026/11/18 -0800 Exp $
+// $KYAULabs: roadmap.test.js kyau@aura.kyaulabs 2026/11/22 -0800 Exp $
 import { beforeEach, expect, it, vi } from 'vitest';
 import { API, SNAPSHOT, Roadmap } from '../../app.js';
 
@@ -213,12 +213,63 @@ it('does not mark an unlisted or closed C1 as Current', () => {
   expect(document.querySelector('.milestone-card .tag').textContent).toBe('Closed');
 });
 
+it.each([
+  [3, 'M6', [27, 132, 22, 131], [131, 22, 27, 132], [[131, '22a'], [132, '28a']]],
+  [4, 'M7', [133, 33, 28], [28, 33, 133], [[133, '35a']]],
+  [9, 'M12', [57, 134, 56], [56, 134, 57], [[134, '57a']]],
+  [10, 'M13', [135, 66, 65], [65, 135, 66], [[135, '66a']]],
+])('places the documented handoff gates within milestone #%d without adding rail entries', async (number, code, responseOrder, displayOrder, gates) => {
+  document.body.innerHTML = '<div id="roadmap-content"></div>';
+  const objectives = { 22: 'A', 27: 'F', 28: 'A', 33: 'F', 56: 'A', 57: 'B', 65: 'E', 66: 'F' };
+  fetch.mockResolvedValue(response(responseOrder.map((id) => ({
+    number: id, state: id === 132 ? 'closed' : 'open',
+    title: objectives[id] ? `${code}-${objectives[id]}: Engine objective` : `${code} handoff: <img src=x>`,
+  }))));
+  Roadmap.render({ milestones: [{ ...normalized, number, title: `${code} — Test milestone`, open: responseOrder.length }], project: null });
+  const links = () => [...document.querySelectorAll('.milestone-item-list a')];
+  await vi.waitFor(() => expect(links()).toHaveLength(responseOrder.length));
+  expect(links().map((link) => Number(new URL(link.href).pathname.split('/').at(-1)))).toEqual(displayOrder);
+  const handoffs = [...document.querySelectorAll('.milestone-handoff a')];
+  expect(handoffs.map((link) => link.getAttribute('href'))).toEqual(gates.map(([id]) => `https://github.com/kyaulabs/ngen/issues/${id}`));
+  expect(handoffs.map((link) => link.querySelector('.milestone-handoff-label').textContent)).toEqual(gates.map(([, step]) => `Handoff · ${step}`));
+  expect(document.querySelectorAll('.milestone-marker')).toHaveLength(1);
+  expect(document.querySelector('.milestone-card progress').max).toBe(responseOrder.length + 1);
+  expect(document.querySelector('img')).toBeNull();
+});
+
+it('does not invent missing handoffs and keeps real handoffs visible without the preceding objective', async () => {
+  document.body.innerHTML = '<div id="roadmap-content"></div>';
+  fetch.mockResolvedValue(response([
+    { number: 57, title: 'M12-B: Engine objective', state: 'open' },
+    { number: 134, title: 'M12 handoff: Optional settlement', state: 'open' },
+  ]));
+  Roadmap.render({ milestones: [{ ...normalized, number: 9, title: 'M12 — Optional settlement' }], project: null });
+  await vi.waitFor(() => expect(document.querySelector('.milestone-item-list a')?.href).toMatch(/\/issues\/134$/));
+  expect(document.querySelectorAll('.milestone-handoff')).toHaveLength(1);
+  fetch.mockResolvedValue(response([{ number: 22, title: 'M6-A: Engine objective', state: 'open' }]));
+  Roadmap.render({ milestones: [{ ...normalized, number: 3, title: 'M6 — Multiplayer' }], project: null });
+  await vi.waitFor(() => expect(document.querySelector('.milestone-item-list a')?.href).toMatch(/\/issues\/22$/));
+  expect(document.querySelectorAll('.milestone-handoff')).toHaveLength(0);
+});
+
 it('renders escaped quests, honest zero-item progress and keyboard-operated views', () => {
   document.body.innerHTML = '<div id="roadmap-content"></div>';
   Roadmap.render({ milestones: [{ ...normalized, title: '<img src=x>', description: '<script>literal</script>', open: 0, closed: 0, state: 'closed' }], project: { columns: [], items: [] } });
   expect(document.querySelectorAll('img, script')).toHaveLength(0);
   expect(document.body.textContent).toContain('No tracked items');
   expect(document.body.textContent).not.toContain('100%');
+});
+
+it.each([
+  ['M6 — Introduce multiplayer. Source: https://github.com/kyaulabs/ngen/blob/main/docs/planning/milestones.md', 'Introduce multiplayer.'],
+  ['C1 - Deliver the SDK. Use M4-A.\nSource: https://github.com/kyaulabs/ngen/issues/11', 'Deliver the SDK. Use M4-A.'],
+  ['M6-A is a prerequisite. Source: https://github.com/kyaulabs/ngen/issues/11 is discussed here.', 'M6-A is a prerequisite. Source: https://github.com/kyaulabs/ngen/issues/11 is discussed here.'],
+  ['Source: https://github.com/kyaulabs/ngen/issues/11', null],
+])('removes only display boilerplate from milestone descriptions: %s', (description, expected) => {
+  document.body.innerHTML = '<div id="roadmap-content"></div>';
+  Roadmap.render({ milestones: [{ ...normalized, description }], project: null });
+  expect(document.querySelector('.milestone-description')?.textContent ?? null).toBe(expected);
+  expect(document.querySelector('.milestone-heading h3').textContent).toBe(normalized.title);
 });
 
 it('lists Kanban before Milestones but opens Milestones and applies keyboard shortcuts in visual order', () => {

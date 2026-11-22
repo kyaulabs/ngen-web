@@ -1,4 +1,4 @@
-// $KYAULabs: dashboard.spec.mjs kyau@aura.kyaulabs 2026/11/18 -0800 Exp $
+// $KYAULabs: dashboard.spec.mjs kyau@aura.kyaulabs 2026/11/22 -0800 Exp $
 import { readFile } from 'node:fs/promises';
 import { test, expect } from '@playwright/test';
 import { controlNetwork, releaseCode } from '../network.mjs';
@@ -321,8 +321,11 @@ test('loads objectives only for viewed milestones and preserves real item states
   await expect(card.locator('.milestone-item-title')).toHaveText([
     'M4-B: Define coordinate frames', 'M4-D: Verify trajectory bounds',
   ]);
-  const openItem = card.getByRole('link', { name: /Define coordinate frames.*Open/ });
-  const closedItem = card.getByRole('link', { name: /Verify trajectory bounds.*Closed/ });
+  const openItem = card.getByRole('link', { name: /Define coordinate frames/ });
+  const closedItem = card.getByRole('link', { name: /Verify trajectory bounds/ });
+  await expect(openItem.locator('.milestone-item-state')).toHaveCount(0);
+  await expect(openItem).toHaveAccessibleDescription('Open');
+  await expect(closedItem.locator('.milestone-item-state')).toHaveText('CLOSED');
   await expect(openItem).toHaveAttribute('href', 'https://github.com/kyaulabs/ngen/issues/12');
   await expect(openItem.locator('svg use')).toHaveAttribute('href', /#circle-dot$/);
   await expect(openItem.locator('svg')).toHaveCSS('color', 'rgb(164, 181, 207)');
@@ -333,6 +336,25 @@ test('loads objectives only for viewed milestones and preserves real item states
   await card.locator('summary').click();
   await card.locator('summary').click();
   expect(requests).toEqual(['11', '1']);
+});
+
+test('shows keyboard-accessible handoff links at the M6 gates on narrow screens', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 844 });
+  await load(page);
+  const roadmap = page.locator('#milestones');
+  await roadmap.getByRole('tab', { name: 'M6 — Authoritative multiplayer' }).click();
+  const card = roadmap.locator('.milestone-card');
+  await expect(card.locator('.milestone-description')).toHaveText('Introduce authoritative multiplayer.');
+  const links = card.locator('.milestone-item-list').getByRole('link');
+  await expect(links).toHaveText([/Handoff · 22a/, /M6-A:/, /M6-F:/, /Handoff · 28a/]);
+  await expect(links.first()).toHaveAttribute('href', 'https://github.com/kyaulabs/ngen/issues/131');
+  await expect(links.last()).toHaveAttribute('href', 'https://github.com/kyaulabs/ngen/issues/132');
+  await expect(card.locator('.milestone-item-state')).toHaveText(['CLOSED']);
+  await card.locator('summary').focus();
+  await page.keyboard.press('Tab');
+  await expect(links.first()).toBeFocused();
+  expect((await links.first().boundingBox()).height).toBeGreaterThanOrEqual(44);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
 test('places Current opposite its milestone label with a stem and spaces View project', async ({ page }) => {
