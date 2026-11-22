@@ -2113,10 +2113,10 @@ const CURRENT_MILESTONE = 11; // C1, explicitly chosen for the website, not infe
 // Space MMO handoff gates in the engine's execution-order.md (PR #136).
 // Only show gates whose GitHub issues are in the viewed milestone's live feed.
 const MILESTONE_HANDOFFS = new Map([
-  [3, [{ number: 131, step: '22a', atStart: true }, { number: 132, step: '28a' }]],
-  [4, [{ number: 133, step: '35a' }]],
-  [9, [{ number: 134, step: '57a', after: 56, before: 57 }]],
-  [10, [{ number: 135, step: '66a', after: 65, before: 66 }]],
+  [3, [{ number: 131, atStart: true }, { number: 132 }]], // 22a and 28a
+  [4, [{ number: 133 }]], // 35a
+  [9, [{ number: 134, after: 56, before: 57 }]], // 57a
+  [10, [{ number: 135, after: 65, before: 66 }]], // 66a
 ]);
 
 const Roadmap = {
@@ -2297,13 +2297,13 @@ const Roadmap = {
     const gates = MILESTONE_HANDOFFS.get(milestoneNumber);
     if (!gates) return rows;
     const ordered = rows.filter((row) => !gates.some((gate) => gate.number === row.number));
-    for (const { number, step, atStart, after, before } of gates) {
+    for (const { number, atStart, after, before } of gates) {
       const row = rows.find((item) => item.number === number);
       if (!row) continue;
       const prior = ordered.findIndex((item) => item.number === after);
       const next = ordered.findIndex((item) => item.number === before);
       const index = atStart ? 0 : prior >= 0 ? prior + 1 : next >= 0 ? next : ordered.length;
-      ordered.splice(index, 0, { ...row, handoff: step });
+      ordered.splice(index, 0, { ...row, handoff: true });
     }
     return ordered;
   },
@@ -2321,11 +2321,13 @@ const Roadmap = {
         const closed = row.state === 'closed';
         const rowClass = row.handoff ? ' class="milestone-handoff"' : closed ? ' class="milestone-item-closed"' : '';
         const icon = row.handoff ? '<span class="milestone-handoff-diamond" aria-hidden="true"></span>' : closed ? UI.ICONS.check : UI.ICONS.issue;
-        const label = row.handoff ? `<span class="milestone-handoff-label">Handoff · ${row.handoff}</span>` : '';
+        const label = row.handoff ? '<span class="milestone-handoff-label">HANDOFF</span>' : '';
+        const number = `#${row.number}`;
+        const state = closed ? '<span class="milestone-item-state">CLOSED</span>' : '';
         return `<li${rowClass}><a href="https://github.com/${CONFIG.owner}/${CONFIG.repo}/${row.kind === 'pr' ? 'pull' : 'issues'}/${row.number}" target="_blank" rel="noopener"${closed ? '' : ' aria-description="Open"'}>
-          ${icon}<span class="milestone-item-number">#${row.number}</span>
+          ${icon}${row.handoff ? '' : `<span class="milestone-item-number">${number}</span>`}
           <span class="milestone-item-title">${label} ${Utils.esc(row.title)}</span>
-          ${closed ? '<span class="milestone-item-state">CLOSED</span>' : ''}
+          ${row.handoff ? `<span class="milestone-handoff-end"><span class="milestone-handoff-link">${number} ${UI.ICONS.external}</span>${state}</span>` : state}
         </a></li>`;
       }).join('')}</ul>` : '<p class="empty-note">// no milestone objectives</p>';
       details.dataset.loaded = 'true';

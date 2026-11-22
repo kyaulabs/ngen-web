@@ -214,10 +214,10 @@ it('does not mark an unlisted or closed C1 as Current', () => {
 });
 
 it.each([
-  [3, 'M6', [27, 132, 22, 131], [131, 22, 27, 132], [[131, '22a'], [132, '28a']]],
-  [4, 'M7', [133, 33, 28], [28, 33, 133], [[133, '35a']]],
-  [9, 'M12', [57, 134, 56], [56, 134, 57], [[134, '57a']]],
-  [10, 'M13', [135, 66, 65], [65, 135, 66], [[135, '66a']]],
+  [3, 'M6', [27, 132, 22, 131], [131, 22, 27, 132], [131, 132]],
+  [4, 'M7', [133, 33, 28], [28, 33, 133], [133]],
+  [9, 'M12', [57, 134, 56], [56, 134, 57], [134]],
+  [10, 'M13', [135, 66, 65], [65, 135, 66], [135]],
 ])('places the documented handoff gates within milestone #%d without adding rail entries', async (number, code, responseOrder, displayOrder, gates) => {
   document.body.innerHTML = '<div id="roadmap-content"></div>';
   const objectives = { 22: 'A', 27: 'F', 28: 'A', 33: 'F', 56: 'A', 57: 'B', 65: 'E', 66: 'F' };
@@ -230,8 +230,10 @@ it.each([
   await vi.waitFor(() => expect(links()).toHaveLength(responseOrder.length));
   expect(links().map((link) => Number(new URL(link.href).pathname.split('/').at(-1)))).toEqual(displayOrder);
   const handoffs = [...document.querySelectorAll('.milestone-handoff a')];
-  expect(handoffs.map((link) => link.getAttribute('href'))).toEqual(gates.map(([id]) => `https://github.com/kyaulabs/ngen/issues/${id}`));
-  expect(handoffs.map((link) => link.querySelector('.milestone-handoff-label').textContent)).toEqual(gates.map(([, step]) => `Handoff · ${step}`));
+  expect(handoffs.map((link) => link.getAttribute('href'))).toEqual(gates.map((id) => `https://github.com/kyaulabs/ngen/issues/${id}`));
+  expect(handoffs.map((link) => link.querySelector('.milestone-handoff-label').textContent)).toEqual(gates.map(() => 'HANDOFF'));
+  expect(handoffs.map((link) => link.querySelector('.milestone-handoff-link').textContent.trim())).toEqual(gates.map((id) => `#${id}`));
+  expect(handoffs.map((link) => link.querySelector('.milestone-item-state')?.textContent)).toEqual(gates.map((id) => id === 132 ? 'CLOSED' : undefined));
   expect(document.querySelectorAll('.milestone-marker')).toHaveLength(1);
   expect(document.querySelector('.milestone-card progress').max).toBe(responseOrder.length + 1);
   expect(document.querySelector('img')).toBeNull();

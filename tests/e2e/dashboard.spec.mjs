@@ -346,10 +346,17 @@ test('shows keyboard-accessible handoff links at the M6 gates on narrow screens'
   const card = roadmap.locator('.milestone-card');
   await expect(card.locator('.milestone-description')).toHaveText('Introduce authoritative multiplayer.');
   const links = card.locator('.milestone-item-list').getByRole('link');
-  await expect(links).toHaveText([/Handoff · 22a/, /M6-A:/, /M6-F:/, /Handoff · 28a/]);
-  await expect(links.first()).toHaveAttribute('href', 'https://github.com/kyaulabs/ngen/issues/131');
-  await expect(links.last()).toHaveAttribute('href', 'https://github.com/kyaulabs/ngen/issues/132');
-  await expect(card.locator('.milestone-item-state')).toHaveText(['CLOSED']);
+  await expect(links).toHaveText([/HANDOFF/, /M6-A:/, /M6-F:/, /HANDOFF/]);
+  await expect(card.locator('.milestone-handoff-label')).toHaveText(['HANDOFF', 'HANDOFF']);
+  const closedLabel = card.locator('.milestone-item-state');
+  await expect(closedLabel).toHaveText('CLOSED');
+  const statusBounds = await closedLabel.boundingBox();
+  for (const [row, id] of [[links.first(), 131], [links.last(), 132]]) {
+    const issueLink = row.getByText(`#${id}`, { exact: true });
+    expect(await issueLink.evaluate((element) => element.closest('a')?.href)).toBe(`https://github.com/kyaulabs/ngen/issues/${id}`);
+    const bounds = await issueLink.boundingBox();
+    expect(Math.abs(bounds.x + bounds.width - statusBounds.x - statusBounds.width)).toBeLessThanOrEqual(1);
+  }
   await card.locator('summary').focus();
   await page.keyboard.press('Tab');
   await expect(links.first()).toBeFocused();
