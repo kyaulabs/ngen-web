@@ -1,4 +1,4 @@
-// $KYAULabs: dashboard.spec.mjs kyau@aura.kyaulabs 2026/11/18 -0800 Exp $
+// $KYAULabs: dashboard.spec.mjs kyau@aura.kyaulabs 2026/11/22 -0800 Exp $
 import { readFile } from 'node:fs/promises';
 import { test, expect } from '@playwright/test';
 import { controlNetwork, releaseCode } from '../network.mjs';
@@ -321,8 +321,11 @@ test('loads objectives only for viewed milestones and preserves real item states
   await expect(card.locator('.milestone-item-title')).toHaveText([
     'M4-B: Define coordinate frames', 'M4-D: Verify trajectory bounds',
   ]);
-  const openItem = card.getByRole('link', { name: /Define coordinate frames.*Open/ });
-  const closedItem = card.getByRole('link', { name: /Verify trajectory bounds.*Closed/ });
+  const openItem = card.getByRole('link', { name: /Define coordinate frames/ });
+  const closedItem = card.getByRole('link', { name: /Verify trajectory bounds/ });
+  await expect(openItem.locator('.milestone-item-state')).toHaveCount(0);
+  await expect(openItem).toHaveAccessibleDescription('Open');
+  await expect(closedItem.locator('.milestone-item-state')).toHaveText('CLOSED');
   await expect(openItem).toHaveAttribute('href', 'https://github.com/kyaulabs/ngen/issues/12');
   await expect(openItem.locator('svg use')).toHaveAttribute('href', /#circle-dot$/);
   await expect(openItem.locator('svg')).toHaveCSS('color', 'rgb(164, 181, 207)');
@@ -333,6 +336,40 @@ test('loads objectives only for viewed milestones and preserves real item states
   await card.locator('summary').click();
   await card.locator('summary').click();
   expect(requests).toEqual(['11', '1']);
+});
+
+test('shows keyboard-accessible handoff links at the M6 gates on narrow screens', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 844 });
+  await load(page);
+  const roadmap = page.locator('#milestones');
+  await roadmap.getByRole('tab', { name: 'M6 — Authoritative multiplayer' }).click();
+  const card = roadmap.locator('.milestone-card');
+  await expect(card.locator('.milestone-description')).toHaveText('Introduce authoritative multiplayer.');
+  const links = card.locator('.milestone-item-list').getByRole('link');
+  await expect(links).toHaveText([/HANDOFF/, /M6-A:/, /M6-F:/, /HANDOFF/]);
+  await expect(card.locator('.milestone-handoff-label')).toHaveText(['HANDOFF', 'HANDOFF']);
+  const closedLabel = card.locator('.milestone-item-state');
+  await expect(closedLabel).toHaveText('CLOSED');
+  const statusBounds = await closedLabel.boundingBox();
+  for (const [row, id] of [[links.first(), 131], [links.last(), 132]]) {
+    const issueNumber = row.getByText(`#${id}`, { exact: true });
+    const title = row.locator('.milestone-item-title');
+    expect((await issueNumber.boundingBox()).x).toBeLessThan((await title.boundingBox()).x);
+    const end = row.locator('.milestone-handoff-end');
+    const icon = end.locator('svg');
+    await expect(end).toHaveText('');
+    await expect(icon.locator('use')).toHaveAttribute('href', 'vendor/fontawesome-icons.svg#file-lines');
+    await expect.poll(() => icon.locator('use').evaluate((element) => element.getBBox().width)).toBeGreaterThan(0);
+    expect(await icon.evaluate((element) => element.closest('a')?.href)).toBe(`https://github.com/kyaulabs/ngen/issues/${id}`);
+    const bounds = await icon.boundingBox();
+    expect(bounds.height).toBeGreaterThanOrEqual(16);
+    expect(Math.abs(bounds.x + bounds.width - statusBounds.x - statusBounds.width)).toBeLessThanOrEqual(1);
+  }
+  await card.locator('summary').focus();
+  await page.keyboard.press('Tab');
+  await expect(links.first()).toBeFocused();
+  expect((await links.first().boundingBox()).height).toBeGreaterThanOrEqual(44);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
 test('places Current opposite its milestone label with a stem and spaces View project', async ({ page }) => {

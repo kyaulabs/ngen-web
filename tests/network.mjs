@@ -16,7 +16,8 @@ const history = Array.from({ length: 163 }, (_, index) => ({
 }));
 const milestones = [
   { number: 1, title: 'M4 — Coordinates/travel/streaming', description: 'Canonical coordinates, origin transfer, warp travel and connected-system streaming.', state: 'open', open_issues: 1, closed_issues: 1 },
-  ...[[2, 'M5 — Miniature offline universe'], [3, 'M6 — Authoritative multiplayer'], [4, 'M7 — Persistence/economy'], [5, 'M8 — Security law/sovereignty'], [6, 'M9 — Fleet scale/time dilation'], [7, 'M10 — Fenced regional transfer'], [8, 'M11 — Optional graphics'], [9, 'M12 — Optional settlement'], [10, 'M13 — Production hardening/release'], [12, 'C2 — Local creator MCP']]
+  { number: 3, title: 'M6 — Authoritative multiplayer', description: 'M6 — Introduce authoritative multiplayer. Source: https://github.com/kyaulabs/ngen/blob/main/docs/planning/milestones.md', state: 'open', open_issues: 3, closed_issues: 1 },
+  ...[[2, 'M5 — Miniature offline universe'], [4, 'M7 — Persistence/economy'], [5, 'M8 — Security law/sovereignty'], [6, 'M9 — Fleet scale/time dilation'], [7, 'M10 — Fenced regional transfer'], [8, 'M11 — Optional graphics'], [9, 'M12 — Optional settlement'], [10, 'M13 — Production hardening/release'], [12, 'C2 — Local creator MCP']]
     .map(([number, title]) => ({ number, title, state: 'open', open_issues: 0, closed_issues: 0 })),
   { number: 11, title: 'C1 — Creator SDK/toolchain', description: 'A reusable engine boundary, standalone projects, scene authoring and an independent creator workflow.', state: 'open', open_issues: 1, closed_issues: 1 },
 ];
@@ -73,7 +74,12 @@ export async function controlNetwork(page, offline = false, reviewState = 'dark'
       ? [{ ...issue, number: 14, title: 'M4-D: Verify trajectory bounds', state: 'closed' }, { ...issue, title: 'M4-B: Define coordinate frames', state: 'open' }]
       : url.searchParams.get('milestone') === '11'
         ? [{ ...issue, number: 55, title: 'C1-D: Build creator workflow', state: 'open' }, { ...issue, number: 73, title: 'C1-B: Create a standalone project workflow', state: 'closed' }]
-        : [];
+        : url.searchParams.get('milestone') === '3' ? [
+          { number: 132, title: 'Adopt authoritative multiplayer in the Space MMO', state: 'open' },
+          { number: 27, title: 'M6-F: Verify the multiplayer test scenario', state: 'open' },
+          { number: 22, title: 'M6-A: Assemble the headless server', state: 'closed' },
+          { number: 131, title: 'Start runnable Space MMO development in its own repo', state: 'open' },
+        ] : [];
     if (url.pathname.endsWith('/pulls')) data = [{ ...issue, number: 13, state: url.searchParams.get('state'), html_url: `${base}/pull/13`, head: { ref: 'feature' }, base: { ref: 'develop' } }];
     if (reviewState === 'roadmap-empty-dark' && (url.pathname.endsWith('/milestones') || url.pathname === '/orgs/kyaulabs/projectsV2/4/items')) data = [];
     if (url.pathname === '/search/issues') data = { total_count: 1 };
