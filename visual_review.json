@@ -72,8 +72,16 @@
       "readySelector": "body.loaded",
       "captureSelector": "#milestones-view",
       "states": [
-        { "id": "dark", "colorScheme": "dark", "actions": [{ "type": "wait-for-selector", "selector": ".milestone-item-list" }, { "type": "scroll-into-view", "selector": "#milestones-view" }] },
-        { "id": "objectives-dark", "colorScheme": "dark", "actions": [{ "type": "click", "selector": ".milestone-next" }, { "type": "wait-for-selector", "selector": ".milestone-card[data-milestone='1'] .milestone-item-list" }, { "type": "scroll-into-view", "selector": "#milestones-view" }] }
+        { "id": "dark", "colorScheme": "dark", "actions": [{ "type": "wait-for-selector", "selector": ".milestone-item-list" }, { "type": "scroll-into-view", "selector": "#milestones-view" }] }
+      ]
+    },
+    {
+      "id": "roadmap-handoffs",
+      "path": "/",
+      "readySelector": "body.loaded",
+      "captureSelector": "#milestone-detail",
+      "states": [
+        { "id": "dark", "colorScheme": "dark", "actions": [{ "type": "click", "selector": "#milestone-marker-3" }, { "type": "wait-for-selector", "selector": ".milestone-handoff:first-child" }, { "type": "scroll-into-view", "selector": "#milestone-detail" }] }
       ]
     },
     {
