@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.\
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines
 and [Semantic Versioning](https://semver.org/spec/v2.0.0.html) for versioning adherance.
 
+## [💾](https://github.com/kyaulabs/ngen-web/releases/tag/v0.2.0) [0.2.0](https://github.com/kyaulabs/ngen-web/compare/v0.1.17...v0.2.0) - (2026-11-23)
+
+### 💄 Styling
+
+- [Roadmap] Simplify handoff labels and links ([36fd603](https://github.com/kyaulabs/ngen-web/commit/36fd6035a35b76a0e7e72494c1720e677ada3599))
+- [Roadmap] Use a document icon for handoff links ([d131fa8](https://github.com/kyaulabs/ngen-web/commit/d131fa88d4c5d2de51a3040e9fa30a2c8b9b9352))
+- [Roadmap] Clarify the handoff document icon ([df3bd44](https://github.com/kyaulabs/ngen-web/commit/df3bd44d54f14cb862e65cd43ab12975adc14210))
+
+### 🚀 Features
+
+- [Roadmap] Show handoff gates in milestone cards ([19cc92b](https://github.com/kyaulabs/ngen-web/commit/19cc92b43baa75c2c50e4fa11454790ae6520b80))
+- [Roadmap] Integrate milestone handoffs (#60) ([61c359f](https://github.com/kyaulabs/ngen-web/commit/61c359f54938ada404a25a7102bfdcc8b0253c5b))
+<!-- Auto-generated on 2026-11-22T16:37:19.109584843-08:00 -->
 ## [💾](https://github.com/kyaulabs/ngen-web/releases/tag/v0.1.17) [0.1.17](https://github.com/kyaulabs/ngen-web/compare/v0.1.16...v0.1.17) - (2026-11-18)
 
 ### 🐛 Bug Fixes
